@@ -610,7 +610,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
                 <div className="font-semibold">{item.desc}</div>
                 {item.imei && item.imei !== '-' && <div className="text-[10px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
               </td>
-              <td className="py-2 align-top text-center font-bold">{item.status}</td>
+              <td className="py-2 align-top text-center font-semibold">{item.status}</td>
               <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
               <td className="py-2 align-top text-center">{item.qty}</td>
               <td className="py-2 align-top text-center">{item.uom}</td>
@@ -619,7 +619,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
               <td className="py-2 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
-          <tr style={{ height: '60px' }}><td colSpan="9"></td></tr>
+          <tr style={{ height: '10px' }}><td colSpan="7"></td></tr>
         </tbody>
       </table>
 
