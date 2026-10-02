@@ -24,7 +24,8 @@ export default function CashSalesApp() {
       companyReg: '',
       companyAddress1: '',
       companyAddress2: '',
-      logoUrl: ''
+      logoUrl: '',
+      logoAlign: 'left' // Default state alignment
     };
   });
 
@@ -55,6 +56,7 @@ export default function CashSalesApp() {
     
     showLogo: true,
     logoUrl: currentUser.logoUrl || '',
+    logoAlign: currentUser.logoAlign || 'left', // Integrasi logo kiri/kanan
 
     customerName: '',
     customerAddress: '',
@@ -293,8 +295,9 @@ function SalesWorkspace({
             items={items} setItems={setItems} subTotal={subTotal} totalAmount={totalAmount}
           />
         ) : (
-          <div className="flex justify-center bg-slate-200 p-3 md:p-8 rounded-xl shadow-inner overflow-x-auto">
-            <div className="pointer-events-none origin-top shadow-2xl bg-white">
+          /* MOBILE FRIENDLY A4 PREVIEW WRAPPER */
+          <div className="w-full bg-slate-200 p-2 md:p-8 rounded-xl shadow-inner overflow-x-auto">
+            <div className="pointer-events-none origin-top mx-auto w-[794px] print:w-auto shadow-2xl bg-white">
                <A4Preview 
                 invoiceData={invoiceData} items={items} 
                 calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
@@ -332,12 +335,28 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                  )}
               </div>
            </div>
-           <div className="flex-1 space-y-2">
+           <div className="flex-1 space-y-3">
               <div className="flex items-center gap-3">
                  <input type="checkbox" id="showLogo" checked={invoiceData.showLogo} onChange={(e) => handleDataChange('showLogo', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded" />
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
-              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
+              
+              {/* LOGO ALIGNMENT TOGGLE */}
+              {invoiceData.showLogo && (
+                <div className="flex items-center gap-3 pl-8">
+                  <label className="text-xs font-bold text-slate-600">Logo Alignment:</label>
+                  <select 
+                    value={invoiceData.logoAlign} 
+                    onChange={(e) => handleDataChange('logoAlign', e.target.value)}
+                    className="bg-white border border-slate-300 rounded p-1 text-xs font-medium outline-none"
+                  >
+                    <option value="left">Left (Kiri)</option>
+                    <option value="right">Right (Kanan)</option>
+                  </select>
+                </div>
+              )}
+              
+              <p className="text-xs text-slate-500 max-w-md pl-8">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
            </div>
         </div>
       </FormSection>
@@ -488,11 +507,14 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
 
 function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords, currentUser }) {
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
+    <div className="w-[794px] min-h-[1123px] print:w-[210mm] print:min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
+      {/* HEADER LOGO KIRI / KANAN LOGIC */}
       <div className="flex justify-between items-start mb-6">
+        
+        {/* Kolom Info Perusahaan (Kiri) */}
         <div className="flex gap-4 items-start max-w-[65%]">
-          {invoiceData.showLogo && invoiceData.logoUrl && (
+          {invoiceData.logoAlign === 'left' && invoiceData.showLogo && invoiceData.logoUrl && (
              <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
           )}
           <div>
@@ -501,9 +523,17 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <p className="text-[10px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
           </div>
         </div>
-        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
-          {invoiceData.docTitle}
+        
+        {/* Kolom Dokumen Info (Kanan) */}
+        <div className="flex flex-col items-end gap-2">
+          {invoiceData.logoAlign === 'right' && invoiceData.showLogo && invoiceData.logoUrl && (
+             <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
+          )}
+          <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
+            {invoiceData.docTitle}
+          </div>
         </div>
+
       </div>
 
       <div className="flex justify-between mb-4 text-[10px]">
@@ -616,7 +646,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES - Spaced dynamically based on content (Removed mt-auto, added pt-24) */}
       <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.companyName}</div>
@@ -624,7 +653,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
+            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
@@ -787,6 +816,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
           companyAddress1: data.user.company_address1 || formData.companyAddress1,
           companyAddress2: data.user.company_address2 || formData.companyAddress2,
           logoUrl: data.user.logo_url || formData.logoUrl,
+          logoAlign: data.user.logo_align || formData.logoAlign || 'left',
           salesman: data.user.salesman || formData.salesman
         };
         setCurrentUser(mappedUser);
@@ -796,7 +826,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
           companyReg: mappedUser.companyReg,
           companyAddress1: mappedUser.companyAddress1,
           companyAddress2: mappedUser.companyAddress2,
-          logoUrl: mappedUser.logoUrl || ''
+          logoUrl: mappedUser.logoUrl || '',
+          logoAlign: mappedUser.logoAlign || 'left'
         });
         setSaved(true); setTimeout(() => setSaved(false), 3000);
       } else {
@@ -810,7 +841,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
         companyReg: formData.companyReg,
         companyAddress1: formData.companyAddress1,
         companyAddress2: formData.companyAddress2,
-        logoUrl: formData.logoUrl || ''
+        logoUrl: formData.logoUrl || '',
+        logoAlign: formData.logoAlign || 'left'
       });
       setSaved(true); setTimeout(() => setSaved(false), 3000);
     }
@@ -837,7 +869,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
 
         <form onSubmit={handleUpdate} className="space-y-6">
           
-          <div className="flex flex-col sm:flex-row gap-6 items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex-shrink-0">
               <label className="cursor-pointer relative flex flex-col items-center justify-center w-24 h-24 bg-white border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors overflow-hidden group">
                  {formData.logoUrl ? (
@@ -856,14 +888,29 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                  )}
               </label>
             </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800">Store Logo</h4>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">Upload your company logo here. It will be saved to your profile and automatically applied to all new invoices you create.</p>
-              {formData.logoUrl && (
-                <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className="text-xs text-red-500 font-bold hover:underline mt-2">
-                  Remove Logo
-                </button>
-              )}
+            
+            <div className="flex-1 w-full">
+              <h4 className="text-sm font-bold text-slate-800">Store Logo Configuration</h4>
+              <p className="text-xs text-slate-500 mt-1 mb-3 max-w-sm">Upload your company logo and set its default position on the invoice.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                 <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase">Logo Alignment:</label>
+                    <select 
+                      value={formData.logoAlign || 'left'} 
+                      onChange={e => setFormData({...formData, logoAlign: e.target.value})}
+                      className="bg-white border border-slate-300 rounded p-1.5 text-xs font-medium outline-none"
+                    >
+                      <option value="left">Left (Kiri)</option>
+                      <option value="right">Right (Kanan)</option>
+                    </select>
+                 </div>
+                 {formData.logoUrl && (
+                   <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className="text-xs text-red-500 font-bold hover:underline">
+                     Remove Logo
+                   </button>
+                 )}
+              </div>
             </div>
           </div>
 
@@ -949,6 +996,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
           companyAddress1: data.user.company_address1 || address1 || '',
           companyAddress2: data.user.company_address2 || address2 || '',
           logoUrl: data.user.logo_url || '',
+          logoAlign: data.user.logo_align || 'left',
           salesman: data.user.salesman || ''
         };
         onLogin(mappedUser);
@@ -959,7 +1007,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
       onLogin({ 
         id: Date.now().toString(),
         fullname: fullName || 'Admin DIK-APPS', email, phone, 
-        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName, logoUrl: '' 
+        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName, logoUrl: '', logoAlign: 'left'
       });
     }
     setLoading(false);
