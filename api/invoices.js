@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     try {
       await sql`
         INSERT INTO invoices (doc_no, customer_name, total_amount, items, user_id) 
-        VALUES (${docNo}, ${customerName}, ${totalAmount}, ${JSON.stringify(items)}, ${userId || null})
+        VALUES (${docNo}, ${customerName}, ${totalAmount}, ${JSON.stringify(items)}, ${userId ? String(userId) : null})
       `;
       return res.status(200).json({ success: true, message: 'Invoice berhasil disimpan ke database!' });
     } catch (error) {

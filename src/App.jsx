@@ -49,7 +49,15 @@ export default function CashSalesApp() {
         return `${parts[0]}-${nextNum}`;
       }
     }
-    return 'H01C-' + Math.floor(100000 + Math.random() * 900000);
+    return '';
+  };
+
+  const getTodayDate = () => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const [invoiceData, setInvoiceData] = useState({
@@ -67,7 +75,7 @@ export default function CashSalesApp() {
     
     docTitle: 'CASH SALES',
     docNo: getInitialDocNo(),
-    docDate: new Date().toLocaleDateString('en-GB'),
+    docDate: getTodayDate(),
     salesman: currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
@@ -142,12 +150,14 @@ export default function CashSalesApp() {
   };
 
   const handlePrintInvoice = () => {
-    localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
+    if (invoiceData.docNo) {
+      localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
+    }
     setPrintMode('invoice');
     setTimeout(() => {
       window.print();
       setPrintMode('none');
-    }, 400);
+    }, 300);
   };
 
   const handlePrintReport = () => {
@@ -155,7 +165,7 @@ export default function CashSalesApp() {
     setTimeout(() => {
       window.print();
       setPrintMode('none');
-    }, 400);
+    }, 300);
   };
 
   if (!isAuthenticated) {
@@ -172,32 +182,31 @@ export default function CashSalesApp() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col ${printMode !== 'none' ? `print-mode-${printMode}` : ''}`}>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
       
+      {/* PERFECT PRINT CSS OVERHAUL */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * { visibility: hidden !important; }
-          .print-mode-invoice .invoice-print-area, 
-          .print-mode-invoice .invoice-print-area * { visibility: visible !important; }
-          .print-mode-invoice .invoice-print-area {
-            position: absolute !important; left: 0 !important; top: 0 !important;
-            width: 210mm !important; min-height: 297mm !important;
-            background: white !important; z-index: 999999 !important;
-            margin: 0 !important; padding: 30px 40px !important; box-shadow: none !important;
+          .print-container, .print-container * { visibility: visible !important; }
+          .print-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            background: white !important;
+            z-index: 999999 !important;
+            margin: 0 !important;
+            padding: 30px 40px !important;
+            box-shadow: none !important;
           }
-
-          .print-mode-report .report-print-area, 
-          .print-mode-report .report-print-area * { visibility: visible !important; }
-          .print-mode-report .report-print-area {
-            position: absolute !important; left: 0 !important; top: 0 !important;
-            width: 100% !important; background: white !important; z-index: 999999 !important;
-            padding: 20px !important;
-          }
+          .no-print { display: none !important; }
         }
       `}} />
 
       {/* NAVIGATION BAR */}
-      <nav className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 print:hidden shadow-sm">
+      <nav className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 no-print shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
             <Smartphone size={20} />
@@ -237,7 +246,7 @@ export default function CashSalesApp() {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-2 print:hidden shadow-lg animate-fade-in">
+        <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-2 no-print shadow-lg">
           <MobileTabButton icon={<LayoutDashboard size={18} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
           <MobileTabButton icon={<FileEdit size={18} />} label="Cash Sales & Invoice" isActive={activeTab === 'sales'} onClick={() => { setActiveTab('sales'); setMobileMenuOpen(false); }} />
           <MobileTabButton icon={<BarChart3 size={18} />} label="Financial Reports" isActive={activeTab === 'reports'} onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} />
@@ -263,6 +272,7 @@ export default function CashSalesApp() {
             formatCurrency={formatCurrency}
             numberToWords={numberToWords}
             currentUser={currentUser}
+            printMode={printMode}
           />
         )}
         {activeTab === 'reports' && <ReportsView handlePrintReport={handlePrintReport} />}
@@ -303,7 +313,7 @@ function DashboardView({ setActiveTab, currentUser }) {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 print:hidden animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-6 no-print">
       <div className="bg-white border border-slate-200 p-5 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm relative overflow-hidden">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-2">
@@ -394,7 +404,7 @@ function StatCard({ title, value, sub, icon, color }) {
 function SalesWorkspace({ 
   invoiceData, setInvoiceData, items, setItems, 
   subTotal, totalAmount, handlePrint, 
-  calculateItemAmount, formatCurrency, numberToWords, currentUser 
+  calculateItemAmount, formatCurrency, numberToWords, currentUser, printMode 
 }) {
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
@@ -426,8 +436,8 @@ function SalesWorkspace({
   };
 
   return (
-    <div className="print:hidden max-w-6xl mx-auto space-y-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3">
+    <div className="max-w-6xl mx-auto space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3 no-print">
         <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
            <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
              <FileEdit size={16}/> Edit Form
@@ -447,7 +457,7 @@ function SalesWorkspace({
         </div>
       </div>
 
-      <div>
+      <div className="no-print">
         {workspaceMode === 'form' ? (
           <SalesForm 
             invoiceData={invoiceData} setInvoiceData={setInvoiceData}
@@ -464,7 +474,8 @@ function SalesWorkspace({
         )}
       </div>
 
-      <div className="invoice-print-area hidden">
+      {/* DEDICATED PRINT CONTAINER (Guaranteed visible during print) */}
+      <div className="print-container hidden">
         <A4Preview 
           invoiceData={invoiceData} items={items} 
           calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
@@ -503,10 +514,10 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <FormSection title="2. CUSTOMER DETAILS">
           <div className="space-y-3">
-            <InputGroup label="Customer Name" value={invoiceData.customerName} onChange={(e) => handleDataChange('customerName', e.target.value)} />
-            <InputGroup label="Address" value={invoiceData.customerAddress} onChange={(e) => handleDataChange('customerAddress', e.target.value)} />
+            <InputGroup label="Customer Name" value={invoiceData.customerName} onChange={(e) => handleDataChange('customerName', e.target.value)} placeholder="e.g. Ahmad Zulkarnain" />
+            <InputGroup label="Address" value={invoiceData.customerAddress} onChange={(e) => handleDataChange('customerAddress', e.target.value)} placeholder="Customer address" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputGroup label="Phone No." value={invoiceData.customerPhone} onChange={(e) => handleDataChange('customerPhone', e.target.value)} />
+              <InputGroup label="Phone No." value={invoiceData.customerPhone} onChange={(e) => handleDataChange('customerPhone', e.target.value)} placeholder="+60 ..." />
               <div>
                 <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Payment Method</label>
                 <select value={invoiceData.paymentMethod} onChange={(e) => handleDataChange('paymentMethod', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none">
@@ -519,8 +530,8 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <InputGroup label="Fax" value={invoiceData.customerFax} onChange={(e) => handleDataChange('customerFax', e.target.value)} />
-              <InputGroup label="GST / SST Reg #" value={invoiceData.customerGst} onChange={(e) => handleDataChange('customerGst', e.target.value)} />
+              <InputGroup label="Fax" value={invoiceData.customerFax} onChange={(e) => handleDataChange('customerFax', e.target.value)} placeholder="-" />
+              <InputGroup label="GST / SST Reg #" value={invoiceData.customerGst} onChange={(e) => handleDataChange('customerGst', e.target.value)} placeholder="-" />
             </div>
           </div>
         </FormSection>
@@ -529,7 +540,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
           <div className="space-y-3">
             <InputGroup label="Document Title" value={invoiceData.docTitle} onChange={(e) => handleDataChange('docTitle', e.target.value)} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputGroup label="Document No" value={invoiceData.docNo} onChange={(e) => handleDataChange('docNo', e.target.value)} />
+              <InputGroup label="Document No" value={invoiceData.docNo} onChange={(e) => handleDataChange('docNo', e.target.value)} placeholder="e.g. H01C-1835193" />
               <InputGroup label="Date (DD/MM/YYYY)" value={invoiceData.docDate} onChange={(e) => handleDataChange('docDate', e.target.value)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -558,10 +569,10 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-5">
-                    <InputGroup label="Description" value={item.desc} onChange={(e) => handleItemChange(item.id, 'desc', e.target.value)} />
+                    <InputGroup label="Description" value={item.desc} onChange={(e) => handleItemChange(item.id, 'desc', e.target.value)} placeholder="Item name" />
                   </div>
                   <div className="sm:col-span-4">
-                    <InputGroup label="IMEI / Serial No" value={item.imei} onChange={(e) => handleItemChange(item.id, 'imei', e.target.value)} />
+                    <InputGroup label="IMEI / Serial No" value={item.imei} onChange={(e) => handleItemChange(item.id, 'imei', e.target.value)} placeholder="-" />
                   </div>
                   <div className="sm:col-span-3">
                     <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
@@ -575,7 +586,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
 
                 <div className="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
                    <div className="col-span-2 sm:col-span-4">
-                      <InputGroup label="Warranty" value={item.warranty} onChange={(e) => handleItemChange(item.id, 'warranty', e.target.value)} />
+                      <InputGroup label="Warranty" value={item.warranty} onChange={(e) => handleItemChange(item.id, 'warranty', e.target.value)} placeholder="Warranty info" />
                    </div>
                    <div className="col-span-1 sm:col-span-2">
                       <InputGroup label="Qty" type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} align="center" />
@@ -644,11 +655,11 @@ function FormSection({ title, action, children }) {
   );
 }
 
-function InputGroup({ label, value, onChange, type = "text", align = "left", textColor = "text-slate-900" }) {
+function InputGroup({ label, value, onChange, type = "text", align = "left", textColor = "text-slate-900", placeholder = "" }) {
   return (
     <div>
       <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">{label}</label>
-      <input type={type} value={value} onChange={onChange} className={`w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none ${textColor}`} style={{ textAlign: align }} />
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none ${textColor}`} style={{ textAlign: align }} />
     </div>
   );
 }
@@ -681,10 +692,10 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
           <div className="flex mb-1"><span className="w-20 font-bold">GST Reg #</span><span>: {invoiceData.customerGst || '-'}</span></div>
         </div>
         <div className="pl-6">
-          <div className="flex mb-1"><span className="w-28 font-bold">DOCUMENT NO</span><span>{invoiceData.docNo}</span></div>
+          <div className="flex mb-1"><span className="w-28 font-bold">DOCUMENT NO</span><span>{invoiceData.docNo || '-'}</span></div>
           <div className="flex mb-1"><span className="w-28 font-bold">DATE</span><span>{invoiceData.docDate}</span></div>
-          <div className="flex mb-1"><span className="w-28 font-bold">SALESMAN</span><span>{invoiceData.salesman}</span></div>
-          <div className="flex mb-1"><span className="w-28 font-bold">PAGE</span><span>{invoiceData.pageInfo}</span></div>
+          <div className="flex mb-1"><span className="w-28 font-bold">SALESMAN</span><span>{invoiceData.salesman || '-'}</span></div>
+          <div className="flex mb-1"><span className="w-28 font-bold">PAGE</span><span>{invoiceData.pageInfo || 'Page 1 of 1'}</span></div>
         </div>
       </div>
 
@@ -706,7 +717,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <tr key={item.id} className="border-b border-gray-100">
               <td className="py-1.5 align-top">{index + 1}</td>
               <td className="py-1.5 align-top">
-                <div className="font-semibold">{item.desc}</div>
+                <div className="font-semibold">{item.desc || '-'}</div>
                 {item.imei && item.imei !== '-' && <div className="text-[9px] text-gray-600">SN/IMEI: {item.imei}</div>}
               </td>
               <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
@@ -776,8 +787,8 @@ function ReportsView({ handlePrintReport }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-      <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 print:hidden">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 no-print">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-slate-800">Financial Reports</h2>
           <p className="text-xs md:text-sm text-slate-500">Sales & Expenses Statements</p>
@@ -799,7 +810,7 @@ function ReportsView({ handlePrintReport }) {
         </div>
       </div>
 
-      <div className="report-print-area space-y-6">
+      <div className="space-y-6">
         <div className="hidden print:block mb-6">
            <h1 className="text-2xl font-bold text-slate-900">Financial Statement ({filterMode})</h1>
            <p className="text-slate-500">Generated on {new Date().toLocaleDateString()}</p>
@@ -897,7 +908,7 @@ function ProfileView({ currentUser, setCurrentUser }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
         <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center font-extrabold text-2xl">
           {(formData.fullname || 'U').charAt(0)}
