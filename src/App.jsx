@@ -45,7 +45,6 @@ export default function CashSalesApp() {
   const getInitialDocNo = () => {
     const lastDoc = localStorage.getItem('dik_last_doc_no');
     if (lastDoc) {
-      // Parse last doc number e.g. "H01C-100001" and increment
       const parts = lastDoc.split('-');
       if (parts.length === 2 && !isNaN(parts[1])) {
         const nextNum = parseInt(parts[1], 10) + 1;
@@ -70,7 +69,7 @@ export default function CashSalesApp() {
     
     docTitle: 'CASH SALES',
     docNo: getInitialDocNo(),
-    docDate: new Date().toLocaleDateString('en-GB'), // Otomatis tanggal hari ini
+    docDate: new Date().toLocaleDateString('en-GB'),
     salesman: currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
@@ -102,12 +101,50 @@ export default function CashSalesApp() {
   const totalAmount = subTotal - parseFloat(invoiceData.discountTotal || 0) - parseFloat(invoiceData.roundCent || 0);
   const formatCurrency = (val) => parseFloat(val || 0).toFixed(2);
 
-  const numberToWords = (amount) => {
-    return "Four Thousand Four Hundred Nineteen Only"; 
+  // Helper to convert number to English words for Malaysia Ringgit
+  const numberToWords = (num) => {
+    if (isNaN(num) || num <= 0) return "Zero Only";
+    
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const numToWordsText = (n) => {
+      let str = '';
+      if ((nwheeled = Math.floor(n / 10000000) > 0)) {
+        str += numToWordsText(Math.floor(n / 10000000)) + 'Crore ';
+        n %= 10000000;
+      }
+      if ((nwheeled = Math.floor(n / 100000) > 0)) {
+        str += numToWordsText(Math.floor(n / 100000)) + 'Lakh ';
+        n %= 100000;
+      }
+      if ((nwheeled = Math.floor(n / 1000) > 0)) {
+        str += numToWordsText(Math.floor(n / 1000)) + 'Thousand ';
+        n %= 1000;
+      }
+      if ((nwheeled = Math.floor(n / 100) > 0)) {
+        str += a[Math.floor(n / 100)] + 'Hundred ';
+        n %= 100;
+      }
+      if (n > 0) {
+        if (str !== '') str += 'and ';
+        if (n < 20) {
+          str += a[n];
+        } else {
+          str += b[Math.floor(n / 10)] + ' ';
+          if (n % 10 > 0) str += a[n % 10];
+        }
+      }
+      return str.trim();
+    };
+
+    const parts = num.toFixed(2).split('.');
+    const integerPart = parseInt(parts[0], 10);
+    const words = numToWordsText(integerPart);
+    return words ? words + ' Only' : 'Zero Only';
   };
 
   const handlePrintInvoice = () => {
-    // Simpan docNo terakhir agar diingat sistem
     localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
     setPrintMode('invoice');
     setTimeout(() => {
@@ -499,7 +536,10 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
               <InputGroup label="Document No" value={invoiceData.docNo} onChange={(e) => handleDataChange('docNo', e.target.value)} />
               <InputGroup label="Date (DD/MM/YYYY)" value={invoiceData.docDate} onChange={(e) => handleDataChange('docDate', e.target.value)} />
             </div>
-            <InputGroup label="Salesman" value={invoiceData.salesman} onChange={(e) => handleDataChange('salesman', e.target.value)} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <InputGroup label="Salesman / Attendant" value={invoiceData.salesman} onChange={(e) => handleDataChange('salesman', e.target.value)} />
+              <InputGroup label="Page Info" value={invoiceData.pageInfo} onChange={(e) => handleDataChange('pageInfo', e.target.value)} />
+            </div>
           </div>
         </FormSection>
       </div>
@@ -706,7 +746,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <div className="w-[45%] border-t border-black pt-1 font-bold">{invoiceData.companyName || 'DIK-APPS STORE'}</div>
         <div className="w-[45%] border-t border-black pt-1">
           <p>Company Chop Signature</p>
-          <p className="mt-1">Name: {invoiceData.salesman}</p>
+          <p className="mt-1">Name: {invoiceData.customerName || '-'}</p>
           <p className="mt-1">Date: {invoiceData.docDate}</p>
         </div>
       </div>
@@ -1033,7 +1073,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
             </div>
 
             <div>
-              <label className="block text-[10px] pem-bold text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
               <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
             </div>
 
