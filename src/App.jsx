@@ -587,7 +587,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       <div className="flex justify-between text-[10px] mt-1 mb-8">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
-            <span className="font-bold">Malaysia Ringgit</span> &nbsp;&nbsp;{numberToWords(totalAmount)}
+            <span className="font-bold">Malaysia Ringgit</span><span> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
           <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
