@@ -616,16 +616,15 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES - Spaced dynamically based on content via mt-auto */}
-      {/* ADDED extra pt-24 to ensure there is generous space before the signature */}
-      <div className="pt-24 flex justify-between text-[10px] w-full pb-4 mt-auto">
+      {/* FOOTER SIGNATURES - Spaced dynamically based on content (Removed mt-auto, added pt-24) */}
+      <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
-          <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
+          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
         <div className="w-[42%]">
-          <div className="border-t border-black pt-1">
+          <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.salesman || '-'}</p>
+            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
@@ -867,17 +866,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
               )}
             </div>
           </div>
-             <div className="bg-white p-3 border border-slate-200 rounded-lg inline-block">
-                <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Invoice Logo Alignment</p>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setFormData({...formData, logoAlign: 'left'})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-colors ${formData.logoAlign === 'left' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    <AlignLeft size={14}/> Left
-                  </button>
-                  <button type="button" onClick={() => setFormData({...formData, logoAlign: 'center'})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-colors ${formData.logoAlign === 'center' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    <AlignCenter size={14}/> Center Top
-                  </button>
-                </div>
-              </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
