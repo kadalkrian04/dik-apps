@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FileEdit, Plus, Printer, 
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
-  LogOut, User, CheckCircle, ShieldCheck, Building2, Menu, X, Mail, Lock, Phone
+  LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -36,8 +36,7 @@ export default function CashSalesApp() {
     }
   }, [isAuthenticated, currentUser]);
 
-  const [activeTab, setActiveTab] = useState('sales'); // Langsung buka halaman sales
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('sales');
 
   const getTodayDate = () => {
     const d = new Date();
@@ -53,7 +52,9 @@ export default function CashSalesApp() {
     companyAddress1: currentUser.companyAddress1 || 'P.O. BOX 38, 89727, KG LAMPUAS, MEMBAKUT',
     companyAddress2: currentUser.companyAddress2 || 'SABAH, MALAYSIA',
     
-    // Default Customer Kosong
+    showLogo: true,
+    logoUrl: localStorage.getItem('dik_store_logo') || '',
+
     customerName: '',
     customerAddress: '',
     customerPhone: '',
@@ -149,19 +150,16 @@ export default function CashSalesApp() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
       
-      {/* GLOBAL PRINT STYLES - Fix Blank Page */}
+      {/* GLOBAL PRINT STYLES - Ensures exact rendering of A4 */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
           body, html, #root { 
-            height: auto !important; 
-            min-height: auto !important;
             background-color: white !important; 
             margin: 0 !important; 
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important; 
             print-color-adjust: exact !important; 
-            overflow: visible !important;
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
@@ -214,7 +212,7 @@ export default function CashSalesApp() {
       </main>
 
       {/* DEDICATED PRINT AREA (Only visible in Print) */}
-      <div className="hidden print-only print:block w-full absolute top-0 left-0 bg-white m-0 p-0">
+      <div className="hidden print-only print:block w-full absolute top-0 left-0 bg-white m-0 p-0 z-50">
         <A4Preview 
           invoiceData={invoiceData} items={items} 
           calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
@@ -260,7 +258,7 @@ function SalesWorkspace({
         alert("Invoice successfully saved to database!");
         if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
       } else {
-        alert("Failed: " + data.message);
+        alert("Failed to save: " + (data.message || "Unknown error"));
       }
     } catch (err) {
       alert("Network error: " + err.message);
@@ -269,7 +267,7 @@ function SalesWorkspace({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3">
         <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
            <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
@@ -318,60 +316,117 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
   const addItem = () => setItems([...items, { id: Date.now(), desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }]);
   const removeItem = (id) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleDataChange('logoUrl', reader.result);
+        localStorage.setItem('dik_store_logo', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
+      
+      {/* SECTION 1: STORE LOGO & SETTINGS */}
+      <FormSection title="1. STORE LOGO & DISPLAY SETTINGS">
+        <div className="flex flex-col sm:flex-row gap-6 items-center">
+           <div className="flex-shrink-0">
+              <label className="cursor-pointer relative flex flex-col items-center justify-center w-32 h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-100 transition-colors overflow-hidden group">
+                 {invoiceData.logoUrl ? (
+                   <img src={invoiceData.logoUrl} alt="Store Logo" className="w-full h-full object-contain p-2" />
+                 ) : (
+                   <div className="flex flex-col items-center text-slate-500">
+                     <ImageIcon size={32} className="mb-2 opacity-50"/>
+                     <span className="text-[10px] font-bold uppercase">Upload Logo</span>
+                   </div>
+                 )}
+                 <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                 {invoiceData.logoUrl && (
+                   <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white text-xs font-bold">
+                     Change
+                   </div>
+                 )}
+              </label>
+           </div>
+           <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                 <input type="checkbox" id="showLogo" checked={invoiceData.showLogo} onChange={(e) => handleDataChange('showLogo', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded" />
+                 <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
+              </div>
+              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. Upload a square PNG or JPG for best results.</p>
+              {invoiceData.logoUrl && (
+                <button onClick={() => { handleDataChange('logoUrl', ''); localStorage.removeItem('dik_store_logo'); }} className="text-xs text-red-500 font-bold hover:underline">
+                  Remove Logo
+                </button>
+              )}
+           </div>
+        </div>
+      </FormSection>
+
+      {/* SECTION 2 & 3: CUSTOMER AND DOC INFO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <FormSection title="1. CUSTOMER DETAILS">
+        <FormSection title="2. CUSTOMER DETAILS">
           <div className="space-y-3">
-            <InputGroup label="Customer Name" value={invoiceData.customerName} onChange={(e) => handleDataChange('customerName', e.target.value)} placeholder="Leave blank if none" />
-            <InputGroup label="Address" value={invoiceData.customerAddress} onChange={(e) => handleDataChange('customerAddress', e.target.value)} placeholder="-" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputGroup label="Phone No." value={invoiceData.customerPhone} onChange={(e) => handleDataChange('customerPhone', e.target.value)} placeholder="-" />
-              <InputGroup label="Fax" value={invoiceData.customerFax} onChange={(e) => handleDataChange('customerFax', e.target.value)} placeholder="-" />
+            <InputGroup label="Customer Name" value={invoiceData.customerName} onChange={(e) => handleDataChange('customerName', e.target.value)} />
+            <InputGroup label="Address" value={invoiceData.customerAddress} onChange={(e) => handleDataChange('customerAddress', e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <InputGroup label="Phone No." value={invoiceData.customerPhone} onChange={(e) => handleDataChange('customerPhone', e.target.value)} />
+              <div>
+                <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Payment Method</label>
+                <select value={invoiceData.paymentMethod} onChange={(e) => handleDataChange('paymentMethod', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium">
+                  <option>CASH</option><option>CREDIT CARD</option><option>DEBIT CARD</option><option>BANK TRANSFER</option><option>DUITNOW QR</option>
+                </select>
+              </div>
             </div>
-            <InputGroup label="GST / SST Reg #" value={invoiceData.customerGst} onChange={(e) => handleDataChange('customerGst', e.target.value)} placeholder="-" />
+            <div className="grid grid-cols-2 gap-3">
+              <InputGroup label="Fax" value={invoiceData.customerFax} onChange={(e) => handleDataChange('customerFax', e.target.value)} />
+              <InputGroup label="GST / SST Reg #" value={invoiceData.customerGst} onChange={(e) => handleDataChange('customerGst', e.target.value)} />
+            </div>
           </div>
         </FormSection>
 
-        <FormSection title="2. DOCUMENT SETTINGS">
+        <FormSection title="3. DOCUMENT SETTINGS">
           <div className="space-y-3">
             <InputGroup label="Document Title" value={invoiceData.docTitle} onChange={(e) => handleDataChange('docTitle', e.target.value)} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputGroup label="Document No" value={invoiceData.docNo} onChange={(e) => handleDataChange('docNo', e.target.value)} placeholder="Auto or Type No" />
+            <div className="grid grid-cols-2 gap-3">
+              <InputGroup label="Document No" value={invoiceData.docNo} onChange={(e) => handleDataChange('docNo', e.target.value)} />
               <InputGroup label="Date (DD/MM/YYYY)" value={invoiceData.docDate} onChange={(e) => handleDataChange('docDate', e.target.value)} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputGroup label="Salesman / Attendant" value={invoiceData.salesman} onChange={(e) => handleDataChange('salesman', e.target.value)} />
-              <InputGroup label="Page Info" value={invoiceData.pageInfo} onChange={(e) => handleDataChange('pageInfo', e.target.value)} />
-            </div>
+            <InputGroup label="Salesman / Attendant" value={invoiceData.salesman} onChange={(e) => handleDataChange('salesman', e.target.value)} />
+            <InputGroup label="Page Info" value={invoiceData.pageInfo} onChange={(e) => handleDataChange('pageInfo', e.target.value)} />
           </div>
         </FormSection>
       </div>
 
-      <FormSection title="3. DEVICE & ACCESSORY ITEMS" action={
+      {/* SECTION 4: ITEMS */}
+      <FormSection title="4. DEVICE & ACCESSORY ITEMS" action={
           <button onClick={addItem} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1">
-            + Add Line
+            + Add New Item Line
           </button>
       }>
         <div className="space-y-4">
           {items.map((item, index) => (
-            <div key={item.id} className="border border-slate-200 bg-slate-50 p-3 md:p-4 rounded-xl relative">
+            <div key={item.id} className="border border-slate-200 bg-slate-50 p-3 md:p-4 rounded-xl relative group">
               <div className="flex justify-between items-center mb-3">
-                <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold">Item #{index + 1}</span>
-                <button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center gap-1">
+                <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">Item #{index + 1}</span>
+                <button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 text-[10px] font-bold flex items-center gap-1 md:opacity-50 md:group-hover:opacity-100 transition-opacity">
                   Remove <Trash2 size={12}/>
                 </button>
               </div>
               
               <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                  <div className="sm:col-span-5">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-5">
                     <InputGroup label="Description" value={item.desc} onChange={(e) => handleItemChange(item.id, 'desc', e.target.value)} />
                   </div>
-                  <div className="sm:col-span-4">
-                    <InputGroup label="IMEI / Serial No" value={item.imei} onChange={(e) => handleItemChange(item.id, 'imei', e.target.value)} />
+                  <div className="md:col-span-4">
+                    <InputGroup label="IMEI / Serial Number" value={item.imei} onChange={(e) => handleItemChange(item.id, 'imei', e.target.value)} />
                   </div>
-                  <div className="sm:col-span-3">
+                  <div className="md:col-span-3">
                     <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
                     <select value={item.status} onChange={(e) => handleItemChange(item.id, 'status', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium">
                       <option value="NEW">NEW</option>
@@ -381,24 +436,24 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
-                   <div className="col-span-2 sm:col-span-4">
+                <div className="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+                   <div className="col-span-2 md:col-span-4">
                       <InputGroup label="Warranty" value={item.warranty} onChange={(e) => handleItemChange(item.id, 'warranty', e.target.value)} />
                    </div>
-                   <div className="col-span-1 sm:col-span-2">
+                   <div className="md:col-span-2">
                       <InputGroup label="Qty" type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} align="center" />
                    </div>
-                   <div className="col-span-1 sm:col-span-2">
+                   <div className="md:col-span-2">
                       <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">UOM</label>
                       <select value={item.uom} onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm">
                         <option value="UNIT">UNIT</option><option value="PCS">PCS</option><option value="SET">SET</option>
                         <option value="LGT">LGT</option><option value="BOX">BOX</option>
                       </select>
                    </div>
-                   <div className="col-span-1 sm:col-span-2">
+                   <div className="md:col-span-2">
                       <InputGroup label="Price (MYR)" type="number" value={item.price} onChange={(e) => handleItemChange(item.id, 'price', e.target.value)} align="right" />
                    </div>
-                   <div className="col-span-1 sm:col-span-2">
+                   <div className="md:col-span-2">
                       <InputGroup label="Disc (MYR)" type="number" value={item.discount} onChange={(e) => handleItemChange(item.id, 'discount', e.target.value)} align="right" textColor="text-red-500" />
                    </div>
                 </div>
@@ -408,7 +463,8 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
         </div>
       </FormSection>
 
-      <FormSection title="4. SUMMARY & REMARKS">
+      {/* SECTION 5: SUMMARY */}
+      <FormSection title="5. SUMMARY & REMARKS">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
              <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
@@ -460,46 +516,51 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
 
 function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords }) {
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto p-[40px_50px] text-[12px] leading-snug">
+    <div className="w-[210mm] min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
-      {/* HEADER SECTION */}
+      {/* HEADER: Dynamic Logo & Company Info */}
       <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-[14px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
-          <p>{invoiceData.companyReg}</p>
-          <p className="whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
+        <div className="flex gap-4 items-start max-w-[65%]">
+          {invoiceData.showLogo && invoiceData.logoUrl && (
+             <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
+          )}
+          <div>
+            <h1 className="text-[12px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
+            <p className="text-[10px]">{invoiceData.companyReg}</p>
+            <p className="text-[10px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
+          </div>
         </div>
-        <div className="border border-black px-10 py-1.5 font-bold text-[15px] uppercase tracking-wide">
+        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
           {invoiceData.docTitle}
         </div>
       </div>
 
-      {/* CUSTOMER & DOCUMENT INFO */}
-      <div className="flex justify-between mb-4">
-        {/* Left Column - Customer */}
-        <div className="w-[55%] pr-4 space-y-1">
+      {/* CUSTOMER & DOCUMENT INFO: Flex layout matching reference */}
+      <div className="flex justify-between mb-4 text-[10px]">
+        {/* Left Column */}
+        <div className="w-[58%] pr-2 space-y-[2px]">
           <div className="flex">
-            <span className="w-24 font-bold uppercase">NAME:</span>
+            <span className="w-16 font-bold uppercase">NAME:</span>
             <span className="uppercase font-bold">{invoiceData.customerName || '-'}</span>
           </div>
           <div className="flex">
-            <span className="w-24 font-bold uppercase">ADDRESS:</span>
-            <span className="uppercase">{invoiceData.customerAddress || '-'}</span>
+            <span className="w-16 font-bold uppercase">ADDRESS:</span>
+            <span className="uppercase flex-1">{invoiceData.customerAddress || '-'}</span>
           </div>
-          <div className="flex">
-            <span className="w-24 font-bold uppercase">PHONE:</span>
+          <div className="flex items-center">
+            <span className="w-16 font-bold uppercase">PHONE:</span>
             <span className="w-32">{invoiceData.customerPhone || '-'}</span>
-            <span className="w-12 font-bold uppercase">FAX :</span>
+            <span className="w-10 font-bold uppercase">FAX :</span>
             <span>{invoiceData.customerFax || '-'}</span>
           </div>
           <div className="flex">
-            <span className="w-24 font-bold uppercase">GST Reg #</span>
+            <span className="w-16 font-bold uppercase">GST Reg #</span>
             <span>{invoiceData.customerGst || '-'}</span>
           </div>
         </div>
         
-        {/* Right Column - Doc Info */}
-        <div className="w-[40%] space-y-1 pl-4">
+        {/* Right Column */}
+        <div className="w-[40%] space-y-[2px] pl-4">
           <div className="flex justify-between">
             <span className="font-bold uppercase">DOCUMENT NO</span>
             <span>{invoiceData.docNo || '-'}</span>
@@ -510,7 +571,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
           </div>
           <div className="flex justify-between">
             <span className="font-bold uppercase">SALESMAN</span>
-            <span>{invoiceData.salesman || '-'}</span>
+            <span className="uppercase">{invoiceData.salesman || '-'}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-bold uppercase">PAGE</span>
@@ -520,85 +581,92 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       </div>
 
       {/* ITEMS TABLE */}
-      <table className="w-full text-[11px] mb-4 border-collapse">
+      <table className="w-full text-[10px] mb-4 border-collapse">
         <thead>
           <tr className="border-y-[1.5px] border-black">
-            <th className="py-2 text-left font-bold w-[4%]">Item</th>
-            <th className="py-2 text-left font-bold w-[34%]">Description</th>
-            <th className="py-2 text-center font-bold w-[10%]">Status</th>
-            <th className="py-2 text-center font-bold w-[16%]">Warranty</th>
-            <th className="py-2 text-center font-bold w-[10%]">Quantity Uom</th>
-            <th className="py-2 text-right font-bold w-[10%]">Unit Price</th>
-            <th className="py-2 text-right font-bold w-[8%]">Discount</th>
-            <th className="py-2 text-right font-bold w-[10%]">Amount</th>
+            <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
+            <th className="py-1 text-center font-bold w-[9%]">Status</th>
+            <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
+            <th className="py-1 text-center font-bold w-[12%]">QuantityUom</th>
+            <th className="py-1 text-right font-bold w-[8%]">Unit Price</th>
+            <th className="py-1 text-right font-bold w-[7%]">Discount</th>
+            <th className="py-1 text-right font-bold w-[9%]">Amount</th>
           </tr>
         </thead>
         <tbody className="border-b-[1.5px] border-black">
           {items.map((item, index) => (
             <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
-              <td className="py-2.5 align-top">{index + 1}</td>
-              <td className="py-2.5 align-top">
-                <div className="font-semibold">{item.desc || '-'}</div>
-                {item.imei && item.imei !== '-' && <div className="text-[9.5px] mt-0.5 text-gray-600">SN/IMEI: {item.imei}</div>}
+              <td className="py-1.5 align-top pr-1">
+                <div className="flex gap-2">
+                  <span className="w-3">{index + 1}</span>
+                  <div>
+                    <div className="font-semibold leading-tight">{item.desc || '-'}</div>
+                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-gray-700 font-medium">SN/IMEI: {item.imei}</div>}
+                  </div>
+                </div>
               </td>
-              <td className="py-2.5 align-top text-center font-bold">{item.status}</td>
-              <td className="py-2.5 align-top text-center text-[10px] text-gray-700">{item.warranty || '-'}</td>
-              <td className="py-2.5 align-top text-center">{item.qty} {item.uom}</td>
-              <td className="py-2.5 align-top text-right">{formatCurrency(item.price)}</td>
-              <td className="py-2.5 align-top text-right">{formatCurrency(item.discount)}</td>
-              <td className="py-2.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
+              <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
+              <td className="py-1.5 align-top text-center text-[9px] text-gray-700 px-1">{item.warranty || '-'}</td>
+              <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
-          {/* Spacer to push summary down if needed, but flex takes care of it */}
-          <tr style={{ height: '30px' }}><td colSpan="8"></td></tr>
+          {/* Spacer for table height */}
+          <tr style={{ height: '10px' }}><td colSpan="7"></td></tr>
         </tbody>
       </table>
 
       {/* SUMMARY SECTION */}
-      <div className="flex justify-between text-[11px] mt-3">
+      <div className="flex justify-between text-[10px] mt-1 mb-8">
         {/* Left Summary (Words & Remarks) */}
-        <div className="w-[60%] pr-8">
-          <p className="mb-4 text-[12px]">
+        <div className="w-[60%] pr-6">
+          <p className="mb-2">
             <span className="font-bold">Malaysia Ringgit</span> &nbsp;&nbsp;{numberToWords(totalAmount)}
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
-          <p className="text-[10px] leading-tight text-gray-800">{invoiceData.remarks}</p>
+          <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
         </div>
         
         {/* Right Summary (Totals) */}
-        <div className="w-[35%] space-y-1.5 text-[12px]">
+        <div className="w-[35%] space-y-0.5">
           <div className="flex justify-between">
             <span>Sub Total:</span>
-            <span className="w-24 text-right">{formatCurrency(subTotal)}</span>
+            <span className="w-20 text-right">{formatCurrency(subTotal)}</span>
           </div>
           <div className="flex justify-between">
             <span>Discount:</span>
-            <span className="w-24 text-right">{formatCurrency(invoiceData.discountTotal)}</span>
+            <span className="w-20 text-right">{formatCurrency(invoiceData.discountTotal)}</span>
           </div>
           <div className="flex justify-between">
             <span>Round cent:</span>
-            <span className="w-24 text-right">{formatCurrency(invoiceData.roundCent)}</span>
+            <span className="w-20 text-right">{formatCurrency(invoiceData.roundCent)}</span>
           </div>
-          <div className="border-t-[2px] border-black border-b-[2px] py-1.5 mt-1.5 flex justify-between font-bold">
+          <div className="border-t-[1.5px] border-black border-b-[2px] border-black py-1 mt-1 flex justify-between font-bold text-[11px]">
             <span>Total Amount:</span>
-            <span className="w-28 text-right">MYR {formatCurrency(totalAmount)}</span>
+            <span className="w-24 text-right flex justify-between">
+              <span>MYR</span>
+              <span>{formatCurrency(totalAmount)}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES */}
-      <div className="absolute bottom-[50px] left-[50px] right-[50px] flex justify-between text-[11px]">
+      {/* FOOTER SIGNATURES - Flexible Position */}
+      <div className="mt-auto pt-8 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
           <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
         <div className="w-[42%]">
           <div className="border-t border-black pt-1">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.salesman || '-'}</p>
+            <p className="mt-0.5">Name: {invoiceData.salesman || invoiceData.customerName || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
       </div>
+      
     </div>
   );
 }
@@ -821,10 +889,10 @@ function ProfileView({ currentUser, setCurrentUser }) {
 function AuthScreen({ authMode, setAuthMode, onLogin }) {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState(''); const [phone, setPhone] = useState('+60 ');
-  const [companyName, setCompanyName] = useState('YUNG SIANG ENTERPRISE SDN BHD'); 
-  const [companyReg, setCompanyReg] = useState('Reg No.198701008364 Company No 167082-D');
-  const [address1, setAddress1] = useState('P.O. BOX 38, 89727, KG LAMPUAS, MEMBAKUT'); 
-  const [address2, setAddress2] = useState('SABAH, MALAYSIA');
+  const [companyName, setCompanyName] = useState(''); 
+  const [companyReg, setCompanyReg] = useState('');
+  const [address1, setAddress1] = useState(''); 
+  const [address2, setAddress2] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e) => {
