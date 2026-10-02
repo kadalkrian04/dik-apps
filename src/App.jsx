@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FileEdit, Plus, Printer, 
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
-  LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon, AlignLeft, AlignCenter
+  LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -24,8 +24,7 @@ export default function CashSalesApp() {
       companyReg: '',
       companyAddress1: '',
       companyAddress2: '',
-      logoUrl: '',
-      logoAlign: 'left' // Added logo alignment
+      logoUrl: ''
     };
   });
 
@@ -38,8 +37,7 @@ export default function CashSalesApp() {
     }
   }, [isAuthenticated, currentUser]);
 
-  // Set default tab to Dashboard
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('sales');
 
   const getTodayDate = () => {
     const d = new Date();
@@ -57,7 +55,6 @@ export default function CashSalesApp() {
     
     showLogo: true,
     logoUrl: currentUser.logoUrl || '',
-    logoAlign: currentUser.logoAlign || 'left', // Track logo alignment in invoice
 
     customerName: '',
     customerAddress: '',
@@ -69,24 +66,13 @@ export default function CashSalesApp() {
     docTitle: 'CASH SALES',
     docNo: localStorage.getItem('dik_last_doc_no') || '',
     docDate: getTodayDate(),
-    // Use salesman if set, else fallback to admin
-    salesman: currentUser.salesman || 'Admin',
+    salesman: currentUser.salesman || currentUser.fullname || 'Admin',
     pageInfo: 'Page 1 of 1',
     
     remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
     discountTotal: 0,
     roundCent: 0,
   });
-
-  // Keep invoice settings synced with user profile
-  useEffect(() => {
-     setInvoiceData(prev => ({
-        ...prev,
-        logoUrl: currentUser.logoUrl || '',
-        logoAlign: currentUser.logoAlign || 'left',
-        salesman: currentUser.salesman || prev.salesman 
-     }));
-  }, [currentUser.logoUrl, currentUser.logoAlign, currentUser.salesman]);
 
   const [items, setItems] = useState([
     { id: 1, desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }
@@ -165,7 +151,6 @@ export default function CashSalesApp() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
       
-      {/* BULLETPROOF PRINT STYLES - Solves the blank PDF issue */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -224,12 +209,12 @@ export default function CashSalesApp() {
         {activeTab === 'profile' && <ProfileView currentUser={currentUser} setCurrentUser={setCurrentUser} setInvoiceData={setInvoiceData} invoiceData={invoiceData} />}
       </main>
 
-      {/* DEDICATED PRINT CONTAINER */}
       <div className="hidden print-only print:block w-full absolute top-0 left-0 bg-white m-0 p-0 z-50">
         <A4Preview 
           invoiceData={invoiceData} items={items} 
           calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
           subTotal={subTotal} totalAmount={totalAmount} numberToWords={numberToWords} 
+          currentUser={currentUser}
         />
       </div>
     </div>
@@ -314,6 +299,7 @@ function SalesWorkspace({
                 invoiceData={invoiceData} items={items} 
                 calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
                 subTotal={subTotal} totalAmount={totalAmount} numberToWords={numberToWords} 
+                currentUser={currentUser}
               />
             </div>
           </div>
@@ -332,7 +318,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
   return (
     <div className="space-y-4 md:space-y-6">
       
-      {/* SECTION 1: DISPLAY SETTINGS */}
       <FormSection title="1. DISPLAY SETTINGS">
         <div className="flex flex-col sm:flex-row gap-6 items-center">
            <div className="flex-shrink-0">
@@ -347,17 +332,16 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                  )}
               </div>
            </div>
-           <div className="flex-1 space-y-4">
+           <div className="flex-1 space-y-2">
               <div className="flex items-center gap-3">
                  <input type="checkbox" id="showLogo" checked={invoiceData.showLogo} onChange={(e) => handleDataChange('showLogo', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded" />
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
-              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. <b>To change or align the logo, go to the Profile tab.</b></p>
+              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
            </div>
         </div>
       </FormSection>
 
-      {/* SECTION 2 & 3: CUSTOMER AND DOC INFO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <FormSection title="2. CUSTOMER DETAILS">
           <div className="space-y-3">
@@ -392,7 +376,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
         </FormSection>
       </div>
 
-      {/* SECTION 4: ITEMS */}
       <FormSection title="4. DEVICE & ACCESSORY ITEMS" action={
           <button onClick={addItem} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1">
             + Add New Item Line
@@ -453,7 +436,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
         </div>
       </FormSection>
 
-      {/* SECTION 5: SUMMARY */}
       <FormSection title="5. SUMMARY & REMARKS">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
@@ -504,40 +486,27 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
   );
 }
 
-function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords }) {
+function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords, currentUser }) {
   return (
     <div className="w-[210mm] min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
-      {/* HEADER: Dynamic Logo & Company Info */}
       <div className="flex justify-between items-start mb-6">
-        <div className={`flex gap-4 items-start w-full ${invoiceData.logoAlign === 'center' ? 'flex-col items-center text-center' : ''}`}>
-          
-          {/* LOGO CONTAINER */}
+        <div className="flex gap-4 items-start max-w-[65%]">
           {invoiceData.showLogo && invoiceData.logoUrl && (
-             <div className={`${invoiceData.logoAlign === 'center' ? 'mb-2' : ''}`}>
-                <img src={invoiceData.logoUrl} alt="Logo" className="w-20 h-20 object-contain" />
-             </div>
+             <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
           )}
-          
-          {/* COMPANY TEXT */}
-          <div className={`${invoiceData.logoAlign === 'center' ? 'w-full text-center flex flex-col items-center' : 'max-w-[65%]'}`}>
+          <div>
             <h1 className="text-[12px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
             <p className="text-[10px]">{invoiceData.companyReg}</p>
             <p className="text-[10px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
           </div>
         </div>
-
-        {/* DOC TITLE - Fixed Absolute Position */}
-        <div className={`absolute top-[40px] right-[40px] border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide`}>
+        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
           {invoiceData.docTitle}
         </div>
       </div>
 
-      {invoiceData.logoAlign === 'center' && <div className="h-6"></div>}
-
-      {/* CUSTOMER & DOCUMENT INFO */}
       <div className="flex justify-between mb-4 text-[10px]">
-        {/* Left Column */}
         <div className="w-[58%] pr-2 space-y-[2px]">
           <div className="flex">
             <span className="w-16 font-bold uppercase">NAME:</span>
@@ -559,7 +528,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
           </div>
         </div>
         
-        {/* Right Column */}
         <div className="w-[40%] space-y-[2px] pl-4">
           <div className="flex justify-between">
             <span className="font-bold uppercase">DOCUMENT NO</span>
@@ -580,7 +548,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* ITEMS TABLE */}
       <table className="w-full text-[10px] mb-4 border-collapse">
         <thead>
           <tr className="border-y-[1.5px] border-black">
@@ -617,9 +584,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </tbody>
       </table>
 
-      {/* SUMMARY SECTION */}
       <div className="flex justify-between text-[10px] mt-1 mb-8">
-        {/* Left Summary */}
         <div className="w-[60%] pr-6">
           <p className="mb-2">
             <span className="font-bold">Malaysia Ringgit</span> &nbsp;&nbsp;{numberToWords(totalAmount)}
@@ -628,7 +593,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
           <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
         </div>
         
-        {/* Right Summary */}
         <div className="w-[35%] space-y-0.5">
           <div className="flex justify-between">
             <span>Sub Total:</span>
@@ -652,15 +616,14 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES - Spaced dynamically based on content (Removed mt-auto, added pt-24) */}
-      <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
+      <div className="pt-8 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
-          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.companyName}</div>
+          <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
         <div className="w-[42%]">
-          <div className="border-t-[1.5px] border-black pt-1.5">
+          <div className="border-t border-black pt-1">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.salesman || '-'}</p>
+            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
@@ -777,13 +740,18 @@ function ReportsView() {
           </button>
         </div>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-indigo-50 border border-indigo-100 p-4 md:p-6 rounded-xl">
+            <p className="text-xs font-bold text-indigo-500 mb-1">Total Sales Income</p>
+            <h4 className="text-xl md:text-2xl font-extrabold text-indigo-900">MYR 12,801.00</h4>
+          </div>
+      </div>
     </div>
   );
 }
 
 function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData }) {
-  // Add logoAlign to form state, defaulting to 'left' if undefined
-  const [formData, setFormData] = useState({ ...currentUser, logoAlign: currentUser.logoAlign || 'left' });
+  const [formData, setFormData] = useState(currentUser);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -809,17 +777,40 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
       });
       const data = await res.json();
       if(data.success) {
-        setCurrentUser(data.user);
-        // Sync logo settings immediately to invoice state
-        setInvoiceData({...invoiceData, logoUrl: data.user.logoUrl || '', logoAlign: data.user.logoAlign || 'left'});
+        const mappedUser = {
+          ...formData,
+          ...data.user,
+          fullname: data.user.name || data.user.fullname || formData.fullname,
+          companyName: data.user.company_name || formData.companyName,
+          companyReg: data.user.company_reg || formData.companyReg,
+          companyAddress1: data.user.company_address1 || formData.companyAddress1,
+          companyAddress2: data.user.company_address2 || formData.companyAddress2,
+          logoUrl: data.user.logo_url || formData.logoUrl,
+          salesman: data.user.salesman || formData.salesman
+        };
+        setCurrentUser(mappedUser);
+        setInvoiceData({
+          ...invoiceData,
+          companyName: mappedUser.companyName,
+          companyReg: mappedUser.companyReg,
+          companyAddress1: mappedUser.companyAddress1,
+          companyAddress2: mappedUser.companyAddress2,
+          logoUrl: mappedUser.logoUrl || ''
+        });
         setSaved(true); setTimeout(() => setSaved(false), 3000);
       } else {
         alert(data.message || 'Update failed');
       }
     } catch {
-      // Fallback for local update if API fails
       setCurrentUser(formData);
-      setInvoiceData({...invoiceData, logoUrl: formData.logoUrl || '', logoAlign: formData.logoAlign || 'left'});
+      setInvoiceData({
+        ...invoiceData,
+        companyName: formData.companyName,
+        companyReg: formData.companyReg,
+        companyAddress1: formData.companyAddress1,
+        companyAddress2: formData.companyAddress2,
+        logoUrl: formData.logoUrl || ''
+      });
       setSaved(true); setTimeout(() => setSaved(false), 3000);
     }
     setLoading(false);
@@ -827,6 +818,16 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center font-extrabold text-2xl overflow-hidden">
+          {formData.logoUrl ? <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" /> : (formData.fullname || 'U').charAt(0)}
+        </div>
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname || 'New User'}</h2>
+          <p className="text-xs text-slate-500 font-medium">{formData.role} • DIK-APPS</p>
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
         <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
           <ShieldCheck size={20} className="text-indigo-600" /> Personal & Store Details
@@ -835,9 +836,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
 
         <form onSubmit={handleUpdate} className="space-y-6">
           
-          {/* LOGO UPLOAD & ALIGNMENT */}
-          <div className="flex flex-col sm:flex-row gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="flex-shrink-0 flex flex-col items-center">
+          <div className="flex flex-col sm:flex-row gap-6 items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="flex-shrink-0">
               <label className="cursor-pointer relative flex flex-col items-center justify-center w-24 h-24 bg-white border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors overflow-hidden group">
                  {formData.logoUrl ? (
                    <img src={formData.logoUrl} alt="Store Logo" className="w-full h-full object-contain p-1" />
@@ -855,28 +855,13 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                  )}
               </label>
             </div>
-            <div className="flex-1 space-y-4">
-              <div>
-                <h4 className="text-sm font-bold text-slate-800">Store Logo Configuration</h4>
-                <p className="text-xs text-slate-500 mt-1">Upload your company logo. It will be saved permanently to your profile.</p>
-              </div>
-              
-              <div className="bg-white p-3 border border-slate-200 rounded-lg inline-block">
-                <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Invoice Logo Alignment</p>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setFormData({...formData, logoAlign: 'left'})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-colors ${formData.logoAlign === 'left' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    <AlignLeft size={14}/> Left
-                  </button>
-                  <button type="button" onClick={() => setFormData({...formData, logoAlign: 'center'})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-colors ${formData.logoAlign === 'center' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                    <AlignCenter size={14}/> Center Top
-                  </button>
-                </div>
-              </div>
-
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Store Logo</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">Upload your company logo here. It will be saved to your profile and automatically applied to all new invoices you create.</p>
               {formData.logoUrl && (
-                <div>
-                   <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className="text-xs text-red-500 font-bold hover:underline">Remove Logo</button>
-                </div>
+                <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className="text-xs text-red-500 font-bold hover:underline mt-2">
+                  Remove Logo
+                </button>
               )}
             </div>
           </div>
@@ -888,18 +873,21 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Salesman / Attendant Name</label>
-              <input type="text" value={formData.salesman} onChange={e => setFormData({...formData, salesman: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium text-indigo-700" placeholder="e.g. Clarice Binti Jam" />
-              <p className="text-[10px] text-slate-400 mt-1">This name will appear on the invoice footer.</p>
+              <input type="text" value={formData.salesman} onChange={e => setFormData({...formData, salesman: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number (+60)</label>
               <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" required />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Role / Position</label>
+              <input type="text" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
             </div>
           </div>
 
           <div className="border-t border-slate-200 pt-6">
             <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
-              <Building2 size={20} className="text-indigo-600" /> Default Store Info
+              <Building2 size={20} className="text-indigo-600" /> Default Store Info for Invoice
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
@@ -907,7 +895,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                 <input type="text" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">SSM Reg No</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">SSM Reg No / Company No</label>
                 <input type="text" value={formData.companyReg} onChange={e => setFormData({...formData, companyReg: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
               </div>
               <div>
@@ -932,6 +920,10 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
 function AuthScreen({ authMode, setAuthMode, onLogin }) {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState(''); const [phone, setPhone] = useState('+60 ');
+  const [companyName, setCompanyName] = useState(''); 
+  const [companyReg, setCompanyReg] = useState('');
+  const [address1, setAddress1] = useState(''); 
+  const [address2, setAddress2] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e) => {
@@ -941,18 +933,32 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: authMode, email, password, fullName, phone })
+        body: JSON.stringify({ mode: authMode, email, password, fullName, phone, companyName, companyReg, address1, address2 })
       });
       const data = await res.json();
       if (data.success) { 
-        onLogin(data.user);
+        const mappedUser = {
+          ...data.user,
+          id: data.user.id,
+          fullname: data.user.name || data.user.fullname || fullName || '',
+          email: data.user.email || email,
+          phone: data.user.phone || phone,
+          companyName: data.user.company_name || companyName || '',
+          companyReg: data.user.company_reg || companyReg || '',
+          companyAddress1: data.user.company_address1 || address1 || '',
+          companyAddress2: data.user.company_address2 || address2 || '',
+          logoUrl: data.user.logo_url || '',
+          salesman: data.user.salesman || ''
+        };
+        onLogin(mappedUser);
       } else {
         alert(data.message || "Authentication failed");
       }
     } catch {
       onLogin({ 
-        id: Date.now().toString(), fullname: fullName || 'Admin DIK-APPS', email, phone, 
-        companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '', salesman: '', logoUrl: '', logoAlign: 'left'
+        id: Date.now().toString(),
+        fullname: fullName || 'Admin DIK-APPS', email, phone, 
+        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName, logoUrl: '' 
       });
     }
     setLoading(false);
