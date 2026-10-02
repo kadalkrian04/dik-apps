@@ -618,7 +618,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       </table>
 
       {/* SUMMARY SECTION */}
-      <div className="flex justify-between text-[10px] mt-1 mb-12">
+      <div className="flex justify-between text-[10px] mt-1 mb-8">
         {/* Left Summary */}
         <div className="w-[60%] pr-6">
           <p className="mb-2">
@@ -652,14 +652,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES - Spaced dynamically based on content via mt-auto */}
-      {/* ADDED extra pt-24 to ensure there is generous space before the signature */}
-      <div className="pt-24 flex justify-between text-[10px] w-full pb-4 mt-auto">
+      {/* FOOTER SIGNATURES - Spaced dynamically based on content (Removed mt-auto, added pt-24) */}
+      <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
-          <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
+          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
         <div className="w-[42%]">
-          <div className="border-t border-black pt-1">
+          <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
             <p className="mt-0.5">Name: {invoiceData.salesman || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
@@ -836,7 +835,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
 
         <form onSubmit={handleUpdate} className="space-y-6">
           
-          {/* LOGO UPLOAD & ALIGNMENT MOVED TO PROFILE */}
+          {/* LOGO UPLOAD & ALIGNMENT */}
           <div className="flex flex-col sm:flex-row gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex-shrink-0 flex flex-col items-center">
               <label className="cursor-pointer relative flex flex-col items-center justify-center w-24 h-24 bg-white border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors overflow-hidden group">
