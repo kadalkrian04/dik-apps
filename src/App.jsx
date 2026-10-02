@@ -4,7 +4,7 @@ import {
   Smartphone, Eye, Trash2, 
   DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
-  LogOut, User, Lock, Mail, Phone, Menu, X, CheckCircle, ShieldCheck, Building2
+  LogOut, User, Menu, X, CheckCircle, ShieldCheck, Building2
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -27,7 +27,6 @@ export default function CashSalesApp() {
     };
   });
 
-  // Save session state to localStorage
   useEffect(() => {
     localStorage.setItem('dik_auth', isAuthenticated);
     if (currentUser && currentUser.email) {
@@ -41,7 +40,6 @@ export default function CashSalesApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [printMode, setPrintMode] = useState('none'); 
 
-  // Helper to get last used doc number or generate a new sequential one
   const getInitialDocNo = () => {
     const lastDoc = localStorage.getItem('dik_last_doc_no');
     if (lastDoc) {
@@ -101,28 +99,15 @@ export default function CashSalesApp() {
   const totalAmount = subTotal - parseFloat(invoiceData.discountTotal || 0) - parseFloat(invoiceData.roundCent || 0);
   const formatCurrency = (val) => parseFloat(val || 0).toFixed(2);
 
-  // Helper to convert number to English words for Malaysia Ringgit
   const numberToWords = (num) => {
     if (isNaN(num) || num <= 0) return "Zero Only";
     
     const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
     const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-    const numToWordsText = (n) => {
+    const convertChunk = (n) => {
       let str = '';
-      if ((nwheeled = Math.floor(n / 10000000) > 0)) {
-        str += numToWordsText(Math.floor(n / 10000000)) + 'Crore ';
-        n %= 10000000;
-      }
-      if ((nwheeled = Math.floor(n / 100000) > 0)) {
-        str += numToWordsText(Math.floor(n / 100000)) + 'Lakh ';
-        n %= 100000;
-      }
-      if ((nwheeled = Math.floor(n / 1000) > 0)) {
-        str += numToWordsText(Math.floor(n / 1000)) + 'Thousand ';
-        n %= 1000;
-      }
-      if ((nwheeled = Math.floor(n / 100) > 0)) {
+      if (Math.floor(n / 100) > 0) {
         str += a[Math.floor(n / 100)] + 'Hundred ';
         n %= 100;
       }
@@ -135,13 +120,25 @@ export default function CashSalesApp() {
           if (n % 10 > 0) str += a[n % 10];
         }
       }
-      return str.trim();
+      return str;
     };
 
-    const parts = num.toFixed(2).split('.');
-    const integerPart = parseInt(parts[0], 10);
-    const words = numToWordsText(integerPart);
-    return words ? words + ' Only' : 'Zero Only';
+    let n = Math.floor(num);
+    let result = '';
+
+    if (Math.floor(n / 1000000) > 0) {
+      result += convertChunk(Math.floor(n / 1000000)) + 'Million ';
+      n %= 1000000;
+    }
+    if (Math.floor(n / 1000) > 0) {
+      result += convertChunk(Math.floor(n / 1000)) + 'Thousand ';
+      n %= 1000;
+    }
+    if (n > 0) {
+      result += convertChunk(n);
+    }
+
+    return result.trim() ? result.trim() + ' Only' : 'Zero Only';
   };
 
   const handlePrintInvoice = () => {
@@ -177,7 +174,6 @@ export default function CashSalesApp() {
   return (
     <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col ${printMode !== 'none' ? `print-mode-${printMode}` : ''}`}>
       
-      {/* PERFECT PRINT CSS TO FIX WHITE SCREEN BUG */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * { visibility: hidden !important; }
