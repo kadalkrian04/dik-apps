@@ -4,35 +4,48 @@ import {
   Smartphone, Eye, Trash2, 
   DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
-  LogOut, User, Lock, Mail, Phone, Menu, X, CheckCircle, ShieldCheck
+  LogOut, User, Lock, Mail, Phone, Menu, X, CheckCircle, ShieldCheck, Building2
 } from 'lucide-react';
 
 export default function CashSalesApp() {
-  // ================= AUTH STATE =================
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
-  const [currentUser, setCurrentUser] = useState({
-    fullname: 'Clarice Binti Jam',
-    email: 'clarice@yungsiang.my',
-    phone: '+60 11-2345 6789',
-    role: 'Store Manager / Salesman'
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('dik_auth') === 'true';
+  });
+  const [authMode, setAuthMode] = useState('login'); 
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem('dik_user');
+    return savedUser ? JSON.parse(savedUser) : {
+      id: null,
+      fullname: '',
+      email: '',
+      phone: '',
+      role: 'Store Manager / Salesman',
+      companyName: '',
+      companyReg: '',
+      companyAddress1: '',
+      companyAddress2: ''
+    };
   });
 
-  // Main Navigation State: 'dashboard', 'sales', 'reports', 'profile'
+  // Save session state to localStorage
+  useEffect(() => {
+    localStorage.setItem('dik_auth', isAuthenticated);
+    if (currentUser) {
+      localStorage.setItem('dik_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('dik_user');
+    }
+  }, [isAuthenticated, currentUser]);
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Mobile drawer state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [printMode, setPrintMode] = useState('none'); 
 
-  // State untuk mengontrol print/PDF agar tidak blank putih
-  const [printMode, setPrintMode] = useState('none'); // 'none', 'invoice', 'report'
-
-  // ================= INVOICE STATE =================
   const [invoiceData, setInvoiceData] = useState({
-    companyName: 'YUNG SIANG ENTERPRISE SDN BHD',
-    companyReg: 'Reg No.198701008364 Company No 167082-D',
-    companyAddress1: 'P.O. BOX 38, 89727, KG LAMPUAS, MEMBAKUT',
-    companyAddress2: 'SABAH, MALAYSIA',
+    companyName: currentUser.companyName || '',
+    companyReg: currentUser.companyReg || '',
+    companyAddress1: currentUser.companyAddress1 || '',
+    companyAddress2: currentUser.companyAddress2 || '',
     
     customerName: 'CASH CUSTOMER',
     customerAddress: '-',
@@ -42,9 +55,9 @@ export default function CashSalesApp() {
     customerGst: '-',
     
     docTitle: 'CASH SALES',
-    docNo: 'H01C-1835193',
+    docNo: 'H01C-' + Math.floor(100000 + Math.random() * 900000),
     docDate: new Date().toLocaleDateString('en-GB'),
-    salesman: 'CLARICE BINTI JAM',
+    salesman: currentUser.fullname || 'ADMIN',
     pageInfo: 'Page 1 of 1',
     
     remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
@@ -52,9 +65,19 @@ export default function CashSalesApp() {
     roundCent: 0,
   });
 
+  useEffect(() => {
+    setInvoiceData(prev => ({
+      ...prev,
+      companyName: currentUser.companyName || '',
+      companyReg: currentUser.companyReg || '',
+      companyAddress1: currentUser.companyAddress1 || '',
+      companyAddress2: currentUser.companyAddress2 || '',
+      salesman: currentUser.fullname || ''
+    }));
+  }, [currentUser]);
+
   const [items, setItems] = useState([
-    { id: 1, desc: 'iPhone 15 Pro 128GB - Natural Titanium', imei: '354892110293841 / SN: F2LQ99XX', status: 'NEW', warranty: '1 Year Apple Official Warranty', qty: 1, uom: 'UNIT', price: 4299.00, discount: 0 },
-    { id: 2, desc: 'Anker 20W Fast Charger Type-C Adapter', imei: '-', status: 'NEW', warranty: '6 Months Replacement', qty: 2, uom: 'PCS', price: 65.00, discount: 0 }
+    { id: 1, desc: '', imei: '-', status: 'NEW', warranty: '-', qty: 1, uom: 'UNIT', price: 0, discount: 0 }
   ]);
 
   const calculateItemAmount = (item) => {
@@ -66,10 +89,9 @@ export default function CashSalesApp() {
   const formatCurrency = (val) => parseFloat(val || 0).toFixed(2);
 
   const numberToWords = (amount) => {
-    return "Four Thousand Four Hundred Twenty Nine Only"; 
+    return "Ringgit Malaysia Only"; 
   };
 
-  // Fixed PDF/Print handler to avoid blank screen
   const handlePrintInvoice = () => {
     setPrintMode('invoice');
     setTimeout(() => {
@@ -87,16 +109,22 @@ export default function CashSalesApp() {
   };
 
   if (!isAuthenticated) {
-    return <AuthScreen authMode={authMode} setAuthMode={setAuthMode} onLogin={(user) => {
-      if(user) setCurrentUser(user);
-      setIsAuthenticated(true);
-    }} />;
+    return (
+      <AuthScreen 
+        authMode={authMode} 
+        setAuthMode={setAuthMode} 
+        onLogin={(user) => {
+          if(user) setCurrentUser(user);
+          setIsAuthenticated(true);
+        }} 
+      />
+    );
   }
 
   return (
     <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col ${printMode !== 'none' ? `print-mode-${printMode}` : ''}`}>
       
-      {/* BULLETPROOF PRINT STYLES TO PREVENT BLANK PAGE */}
+      {}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * { visibility: hidden !important; }
@@ -119,19 +147,18 @@ export default function CashSalesApp() {
         }
       `}} />
 
-      {/* TOP NAVIGATION BAR (RESPONSIVE) */}
+      {}
       <nav className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 print:hidden shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
             <Smartphone size={20} />
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">YUNG SIANG ENTERPRISE</h1>
-            <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
+            <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">{currentUser.companyName || 'DIK-APPS STORE'}</h1>
+            <p className="text-[10px] md:text-xs text-slate-500">DIK-APPS POS System</p>
           </div>
         </div>
 
-        {/* Desktop Tabs */}
         <div className="hidden md:flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
           <TabButton icon={<LayoutDashboard size={16} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <TabButton icon={<FileEdit size={16} />} label="Cash Sales" isActive={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
@@ -139,18 +166,16 @@ export default function CashSalesApp() {
           <TabButton icon={<User size={16} />} label="Profile" isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </div>
 
-        {/* Desktop Right Action */}
         <div className="hidden md:flex items-center gap-3">
           <button onClick={() => setActiveTab('sales')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
             <Plus size={16} /> New Sale
           </button>
           <div className="w-px h-6 bg-slate-300 mx-1"></div>
-          <button onClick={() => setIsAuthenticated(false)} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
+          <button onClick={() => { setIsAuthenticated(false); setCurrentUser(null); localStorage.clear(); }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
             <LogOut size={16} /> Logout
           </button>
         </div>
 
-        {/* Mobile Hamburger Button */}
         <div className="flex md:hidden items-center gap-2">
           <button onClick={() => setActiveTab('sales')} className="bg-indigo-600 text-white p-2 rounded-lg text-xs font-semibold">
             <Plus size={18} />
@@ -161,24 +186,24 @@ export default function CashSalesApp() {
         </div>
       </nav>
 
-      {/* MOBILE DRAWER MENU */}
+      {}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-2 print:hidden shadow-lg animate-fade-in">
           <MobileTabButton icon={<LayoutDashboard size={18} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
           <MobileTabButton icon={<FileEdit size={18} />} label="Cash Sales & Invoice" isActive={activeTab === 'sales'} onClick={() => { setActiveTab('sales'); setMobileMenuOpen(false); }} />
           <MobileTabButton icon={<BarChart3 size={18} />} label="Financial Reports" isActive={activeTab === 'reports'} onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} />
-          <MobileTabButton icon={<User size={18} />} label="Profile Manager" isActive={activeTab === 'profile'} onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }} />
+          <MobileTabButton icon={<User size={18} />} label="Profile & Store Info" isActive={activeTab === 'profile'} onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }} />
           <div className="pt-2 border-t border-slate-200">
-            <button onClick={() => setIsAuthenticated(false)} className="w-full bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 border border-red-200">
+            <button onClick={() => { setIsAuthenticated(false); setCurrentUser(null); localStorage.clear(); }} className="w-full bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 border border-red-200">
               <LogOut size={16} /> Logout System
             </button>
           </div>
         </div>
       )}
 
-      {/* MAIN CONTENT AREA */}
+      {}
       <main className="flex-1 overflow-auto relative p-3 md:p-6">
-        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} />}
+        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} />}
         {activeTab === 'sales' && (
           <SalesWorkspace 
             invoiceData={invoiceData} setInvoiceData={setInvoiceData}
@@ -188,6 +213,7 @@ export default function CashSalesApp() {
             calculateItemAmount={calculateItemAmount}
             formatCurrency={formatCurrency}
             numberToWords={numberToWords}
+            currentUser={currentUser}
           />
         )}
         {activeTab === 'reports' && <ReportsView handlePrintReport={handlePrintReport} />}
@@ -213,8 +239,7 @@ function MobileTabButton({ icon, label, isActive, onClick }) {
   );
 }
 
-// ================= DASHBOARD COMPONENT =================
-function DashboardView({ setActiveTab }) {
+function DashboardView({ setActiveTab, currentUser }) {
   const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -234,10 +259,10 @@ function DashboardView({ setActiveTab }) {
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sabah Branch Active - Sales Terminal Ready
+            DIK-APPS Terminal Active - POS Ready
           </div>
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-            Good Day, CLARICE <span className="text-2xl">👋</span>
+            Welcome, {currentUser.fullname || 'User'} <span className="text-2xl">👋</span>
           </h2>
           <p className="text-slate-500 text-xs md:text-sm mt-1">Manage cash receipts, mobile device sales, and print invoices easily.</p>
         </div>
@@ -253,8 +278,8 @@ function DashboardView({ setActiveTab }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="TOTAL SALES (TODAY)" value="MYR 12,801.00" sub="+14.2% vs yesterday" icon={<DollarSign size={20}/>} color="emerald" />
-        <StatCard title="RECEIPTS ISSUED" value="4 Bills" sub="Latest No: H01C-1835193" icon={<FileSpreadsheet size={20}/>} color="blue" />
-        <StatCard title="DEVICES SOLD" value="4 Units" sub="2 New | 1 Used" icon={<Smartphone size={20}/>} color="indigo" />
+        <StatCard title="RECEIPTS ISSUED" value={`${recentSales.length} Bills`} sub="Latest synced" icon={<FileSpreadsheet size={20}/>} color="blue" />
+        <StatCard title="DEVICES SOLD" value="4 Units" sub="New & Second" icon={<Smartphone size={20}/>} color="indigo" />
         <StatCard title="AVG TRANSACTION" value="MYR 3,200.25" sub="Basket size average" icon={<Activity size={20}/>} color="purple" />
       </div>
 
@@ -317,11 +342,10 @@ function StatCard({ title, value, sub, icon, color }) {
   );
 }
 
-// ================= SALES WORKSPACE (FORM + A4 PREVIEW) =================
 function SalesWorkspace({ 
   invoiceData, setInvoiceData, items, setItems, 
   subTotal, totalAmount, handlePrint, 
-  calculateItemAmount, formatCurrency, numberToWords 
+  calculateItemAmount, formatCurrency, numberToWords, currentUser 
 }) {
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
@@ -336,12 +360,13 @@ function SalesWorkspace({
           docNo: invoiceData.docNo,
           customerName: invoiceData.customerName,
           totalAmount: totalAmount,
-          items: items
+          items: items,
+          userId: currentUser.id
         })
       });
       const data = await res.json();
       if(data.success) {
-        alert("Invoice successfully saved to Neon Database!");
+        alert("Invoice successfully saved to database!");
       } else {
         alert("Failed: " + data.message);
       }
@@ -390,7 +415,6 @@ function SalesWorkspace({
         )}
       </div>
 
-      {/* Bulletproof Hidden Print Area */}
       <div className="invoice-print-area hidden">
         <A4Preview 
           invoiceData={invoiceData} items={items} 
@@ -405,7 +429,7 @@ function SalesWorkspace({
 function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, totalAmount }) {
   const handleDataChange = (field, value) => setInvoiceData({ ...invoiceData, [field]: value });
   const handleItemChange = (id, field, value) => setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
-  const addItem = () => setItems([...items, { id: Date.now(), desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }]);
+  const addItem = () => setItems([...items, { id: Date.now(), desc: '', imei: '-', status: 'NEW', warranty: '-', qty: 1, uom: 'UNIT', price: 0, discount: 0 }]);
   const removeItem = (id) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
   return (
@@ -571,7 +595,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
   return (
     <div className="w-[210mm] min-h-[297mm] bg-white shadow-xl border border-slate-200 p-[30px_40px] box-border relative text-black font-sans mx-auto text-xs md:text-sm">
       <div className="mb-6">
-        <h1 className="text-xs md:text-sm font-bold uppercase">{invoiceData.companyName}</h1>
+        <h1 className="text-xs md:text-sm font-bold uppercase">{invoiceData.companyName || 'DIK-APPS STORE'}</h1>
         <p className="text-[10px] md:text-xs">{invoiceData.companyReg}</p>
         <p className="text-[10px] md:text-xs whitespace-pre-line leading-tight">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
       </div>
@@ -645,14 +669,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       </div>
 
       <div className="absolute bottom-[40px] left-[40px] right-[40px] flex justify-between text-[11px]">
-        <div className="w-[45%] border-t border-black pt-1 font-bold">{invoiceData.companyName}</div>
+        <div className="w-[45%] border-t border-black pt-1 font-bold">{invoiceData.companyName || 'DIK-APPS STORE'}</div>
         <div className="w-[45%] border-t border-black pt-1"><p>Authorized Signature & Chop</p></div>
       </div>
     </div>
   );
 }
 
-// ================= REPORTS COMPONENT =================
 function ReportsView({ handlePrintReport }) {
   const [filterMode, setFilterMode] = useState('1month');
 
@@ -759,42 +782,70 @@ function ReportsView({ handlePrintReport }) {
   );
 }
 
-// ================= PROFILE MENU COMPONENT =================
 function ProfileView({ currentUser, setCurrentUser }) {
   const [formData, setFormData] = useState(currentUser);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    setCurrentUser(formData);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'update_profile',
+          userId: formData.id,
+          fullname: formData.fullname,
+          phone: formData.phone,
+          email: formData.email,
+          companyName: formData.companyName,
+          companyReg: formData.companyReg,
+          companyAddress1: formData.companyAddress1,
+          companyAddress2: formData.companyAddress2
+        })
+      });
+      const data = await res.json();
+      if(data.success) {
+        setCurrentUser(data.user);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        alert(data.message || 'Failed to update profile');
+      }
+    } catch {
+      setCurrentUser(formData);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+    setLoading(false);
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
         <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center font-extrabold text-2xl">
-          {formData.fullname.charAt(0)}
+          {(formData.fullname || 'U').charAt(0)}
         </div>
         <div>
-          <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname}</h2>
-          <p className="text-xs text-slate-500 font-medium">{formData.role} • Sabah Branch</p>
+          <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname || 'New User'}</h2>
+          <p className="text-xs text-slate-500 font-medium">{formData.role} • DIK-APPS</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
-          <ShieldCheck size={20} className="text-indigo-600" /> Edit Profile Details
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+          <ShieldCheck size={20} className="text-indigo-600" /> Personal Details
         </h3>
 
         {saved && (
-          <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-xs font-bold flex items-center gap-2">
-            <CheckCircle size={16} /> Profile successfully updated!
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-xs font-bold flex items-center gap-2">
+            <CheckCircle size={16} /> Profile & Store Details successfully updated!
           </div>
         )}
 
-        <form onSubmit={handleUpdate} className="space-y-4">
+        <form onSubmit={handleUpdate} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
@@ -813,8 +864,33 @@ function ProfileView({ currentUser, setCurrentUser }) {
               <input type="text" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
             </div>
           </div>
-          <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all">
-            Save Changes
+
+          <div className="border-t border-slate-200 pt-6">
+            <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <Building2 size={20} className="text-indigo-600" /> Default Store Info for Invoice
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
+                <input type="text" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} placeholder="e.g. DIK-APPS ENTERPRISE" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">SSM Reg No / Company No</label>
+                <input type="text" value={formData.companyReg} onChange={e => setFormData({...formData, companyReg: e.target.value})} placeholder="e.g. Reg No.202601000000" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Address 1</label>
+                <input type="text" value={formData.companyAddress1} onChange={e => setFormData({...formData, companyAddress1: e.target.value})} placeholder="Street address" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Address 2</label>
+                <input type="text" value={formData.companyAddress2} onChange={e => setFormData({...formData, companyAddress2: e.target.value})} placeholder="City, State, Malaysia" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all">
+            {loading ? 'Saving...' : 'Save All Changes'}
           </button>
         </form>
       </div>
@@ -822,12 +898,15 @@ function ProfileView({ currentUser, setCurrentUser }) {
   );
 }
 
-// ================= AUTH COMPONENT =================
 function AuthScreen({ authMode, setAuthMode, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+60 ');
+  const [companyName, setCompanyName] = useState('');
+  const [companyReg, setCompanyReg] = useState('');
+  const [address1, setAddress1] = useState('');
+  const [address2, setAddress2] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e) => {
@@ -838,80 +917,95 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: authMode, email, password, fullName, phone })
+        body: JSON.stringify({ mode: authMode, email, password, fullName, phone, companyName, companyReg, address1, address2 })
       });
       const data = await res.json();
       
-      if (data.success || true) { // Fallback bypass for seamless local testing
-        onLogin({ fullname: fullName || 'Clarice Binti Jam', email, phone });
+      if (data.success) { 
+        onLogin(data.user);
       } else {
         alert(data.message || "Authentication failed");
       }
     } catch {
-      // Offline fallback
-      onLogin({ fullname: fullName || 'Clarice Binti Jam', email, phone });
+      // Fallback local simulation if backend offline
+      onLogin({ 
+        id: Date.now(),
+        fullname: fullName || 'Admin DIK-APPS', 
+        email, 
+        phone, 
+        companyName, 
+        companyReg, 
+        companyAddress1: address1, 
+        companyAddress2: address2 
+      });
     }
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div className="bg-indigo-600 p-6 md:p-8 text-center text-white">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-             <Smartphone className="text-indigo-600" size={28} />
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden my-6">
+        <div className="bg-indigo-600 p-6 text-center text-white">
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+             <Smartphone className="text-indigo-600" size={24} />
           </div>
-          <h2 className="text-lg md:text-xl font-extrabold">YUNG SIANG ENTERPRISE</h2>
-          <p className="text-indigo-200 text-xs md:text-sm mt-1">Sabah Mobile POS System</p>
+          <h2 className="text-base md:text-lg font-extrabold">DIK-APPS POS</h2>
+          <p className="text-indigo-200 text-xs mt-1">Malaysia & Sabah Mobile POS System</p>
         </div>
         
-        <div className="p-6 md:p-8">
-          <h3 className="text-base md:text-lg font-bold text-slate-800 mb-5 text-center">
-            {authMode === 'login' ? 'Sign In to Account' : 'Register New Account'}
+        <div className="p-6">
+          <h3 className="text-sm md:text-base font-bold text-slate-800 mb-4 text-center">
+            {authMode === 'login' ? 'Sign In to Account' : 'Register New Account (Malaysia)'}
           </h3>
           
           <form onSubmit={handleAuth} className="space-y-3">
             {authMode === 'register' && (
               <>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input required type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Ahmad Zulkarnain" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none" />
-                  </div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Full Name (As per IC)</label>
+                  <input required type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Ahmad Zulkarnain" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone (+60)</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+60 12-345 6789" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none" />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone Number (+60)</label>
+                  <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+60 12-345 6789" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Company Name</label>
+                  <input required type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="DIK-APPS ENTERPRISE SDN BHD" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SSM Reg No</label>
+                  <input required type="text" value={companyReg} onChange={e => setCompanyReg(e.target.value)} placeholder="Reg No.202601000000" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Address 1</label>
+                    <input required type="text" value={address1} onChange={e => setAddress1(e.target.value)} placeholder="Street Address" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Address 2</label>
+                    <input required type="text" value={address2} onChange={e => setAddress2(e.target.value)} placeholder="City, State" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
                   </div>
                 </div>
               </>
             )}
             
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@yungsiang.my" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none" />
-              </div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Address</label>
+              <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@dik-apps.my" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none" />
-              </div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
+              <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm shadow-md transition-all mt-4">
+            <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all mt-4">
               {loading ? 'Processing...' : (authMode === 'login' ? 'Secure Login' : 'Register Account')}
             </button>
           </form>
           
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+          <div className="mt-4 pt-3 border-t border-slate-100 text-center text-xs text-slate-500">
             {authMode === 'login' ? (
               <p>Don't have an account? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-bold hover:underline">Register here</button></p>
             ) : (
