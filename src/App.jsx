@@ -41,23 +41,37 @@ export default function CashSalesApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [printMode, setPrintMode] = useState('none'); 
 
+  // Helper to get last used doc number or generate a new sequential one
+  const getInitialDocNo = () => {
+    const lastDoc = localStorage.getItem('dik_last_doc_no');
+    if (lastDoc) {
+      // Parse last doc number e.g. "H01C-100001" and increment
+      const parts = lastDoc.split('-');
+      if (parts.length === 2 && !isNaN(parts[1])) {
+        const nextNum = parseInt(parts[1], 10) + 1;
+        return `${parts[0]}-${nextNum}`;
+      }
+    }
+    return 'H01C-' + Math.floor(100000 + Math.random() * 900000);
+  };
+
   const [invoiceData, setInvoiceData] = useState({
     companyName: currentUser.companyName || '',
     companyReg: currentUser.companyReg || '',
     companyAddress1: currentUser.companyAddress1 || '',
     companyAddress2: currentUser.companyAddress2 || '',
     
-    customerName: 'CASH CUSTOMER',
-    customerAddress: '-',
-    customerPhone: '+60 11-2345 6789',
+    customerName: '',
+    customerAddress: '',
+    customerPhone: '',
     paymentMethod: 'CASH',
-    customerFax: '-',
-    customerGst: '-',
+    customerFax: '',
+    customerGst: '',
     
     docTitle: 'CASH SALES',
-    docNo: 'H01C-' + Math.floor(100000 + Math.random() * 900000),
-    docDate: new Date().toLocaleDateString('en-GB'),
-    salesman: currentUser.fullname || 'ADMIN',
+    docNo: getInitialDocNo(),
+    docDate: new Date().toLocaleDateString('en-GB'), // Otomatis tanggal hari ini
+    salesman: currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
     remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
@@ -93,6 +107,8 @@ export default function CashSalesApp() {
   };
 
   const handlePrintInvoice = () => {
+    // Simpan docNo terakhir agar diingat sistem
+    localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
     setPrintMode('invoice');
     setTimeout(() => {
       window.print();
@@ -515,8 +531,8 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                     <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
                     <select value={item.status} onChange={(e) => handleItemChange(item.id, 'status', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium">
                       <option value="NEW">NEW</option>
-                      <option value="USED - GRADE A">USED - GRADE A</option>
-                      <option value="USED - GRADE B">USED - GRADE B</option>
+                      <option value="SECOND/USED">SECOND/USED</option>
+                      <option value="REFURBISHED">REFURBISHED</option>
                     </select>
                   </div>
                 </div>
@@ -534,6 +550,8 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                         <option value="UNIT">UNIT</option>
                         <option value="PCS">PCS</option>
                         <option value="SET">SET</option>
+                        <option value="LGT">LGT</option>
+                        <option value="BOX">BOX</option>
                       </select>
                    </div>
                    <div className="col-span-1 sm:col-span-2">
@@ -616,15 +634,15 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <div className="grid grid-cols-2 gap-4 mb-3 text-[10px] md:text-[11px] leading-tight">
         <div>
-          <div className="flex mb-1"><span className="w-20 font-bold">NAME:</span><span className="uppercase font-bold">{invoiceData.customerName}</span></div>
-          <div className="flex mb-1"><span className="w-20 font-bold">ADDRESS:</span><span className="uppercase">{invoiceData.customerAddress}</span></div>
+          <div className="flex mb-1"><span className="w-20 font-bold">NAME:</span><span className="uppercase font-bold">{invoiceData.customerName || '-'}</span></div>
+          <div className="flex mb-1"><span className="w-20 font-bold">ADDRESS:</span><span className="uppercase">{invoiceData.customerAddress || '-'}</span></div>
           <div className="flex mb-1 mt-2">
             <span className="w-20 font-bold">PHONE:</span>
-            <span className="flex-1">{invoiceData.customerPhone}</span>
+            <span className="flex-1">{invoiceData.customerPhone || '-'}</span>
             <span className="font-bold mr-1">FAX :</span>
-            <span>{invoiceData.customerFax}</span>
+            <span>{invoiceData.customerFax || '-'}</span>
           </div>
-          <div className="flex mb-1"><span className="w-20 font-bold">GST Reg #</span><span>: {invoiceData.customerGst}</span></div>
+          <div className="flex mb-1"><span className="w-20 font-bold">GST Reg #</span><span>: {invoiceData.customerGst || '-'}</span></div>
         </div>
         <div className="pl-6">
           <div className="flex mb-1"><span className="w-28 font-bold">DOCUMENT NO</span><span>{invoiceData.docNo}</span></div>
@@ -856,7 +874,7 @@ function ProfileView({ currentUser, setCurrentUser }) {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
         <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
-          <ShieldCheck size={20} className="text-indigo-600" /> Personal Details
+          <ShieldCheck size={20} className="text-indigo-600" /> Personal & Store Details
         </h3>
 
         {saved && (
@@ -1015,11 +1033,11 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
+              <label className="block text-[10px] pem-bold text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
               <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
             </div>
 
-            <button type="append" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all mt-4">
+            <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all mt-4">
               {loading ? 'Processing...' : (authMode === 'login' ? 'Secure Login' : 'Register Account')}
             </button>
           </form>
