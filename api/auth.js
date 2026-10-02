@@ -1,69 +1,84 @@
-import { Pool } from '@neondatabase/serverless';
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
-  // Setup CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // Hanya izinkan method POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  }
 
   try {
-    if (req.method === 'POST') {
-      const { mode, email, password, fullName, phone, companyName, companyReg, address1, address2 } = req.body;
+    // Koneksi ke database Neon
+    const sql = neon(process.env.DATABASE_URL);
+    
+    // Ambil semua data dari body request
+    const { 
+      mode, id, email, password, name, phone, 
+      company_name, company_reg, company_address1, company_address2, 
+      logo_url, logo_align, salesman 
+    } = req.body;
 
-      if (mode === 'login') {
-        const result = await pool.query('SELECT *, logo_url as "logoUrl" FROM users WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-        
-        const user = result.rows[0];
-        if (user.password !== password) return res.status(401).json({ success: false, message: 'Invalid password' });
-        
-        return res.status(200).json({ success: true, user });
+    // 1. Logika Login
+    if (mode === 'login') {
+      const users = await sql`
+        SELECT * FROM users 
+        WHERE email = ${email} AND password = ${password}
+      `;
+      
+      if (users.length > 0) {
+        return res.status(200).json({ success: true, user: users[0] });
+      } else {
+        return res.status(401).json({ success: false, message: 'Email atau password salah' });
       }
-
-      if (mode === 'register') {
-        const query = `
-          INSERT INTO users (fullname, email, phone, password, company_name, company_reg, company_address1, company_address2, logo_url) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *, logo_url as "logoUrl"
-        `;
-        const values = [
-          fullName, email, phone, password,
-          companyName || 'YUNG SIANG ENTERPRISE SDN BHD',
-          companyReg || 'Reg No.198701008364 Company No 167082-D',
-          address1 || 'P.O. BOX 38, 89727, KG LAMPUAS, MEMBAKUT',
-          address2 || 'SABAH, MALAYSIA',
-          null
-        ];
-        const result = await pool.query(query, values);
-        return res.status(200).json({ success: true, user: result.rows[0] });
+    } 
+    
+    // 2. Logika Register
+    else if (mode === 'register') {
+      // Cek apakah email sudah terdaftar sebelumnya
+      const existingUser = await sql`SELECT * FROM users WHERE email = ${email}`;
+      if (existingUser.length > 0) {
+        return res.status(400).json({ success: false, message: 'Email sudah terdaftar, silakan gunakan email lain' });
       }
-
-      if (mode === 'update_profile') {
-        const { userId, fullname, role, salesman, logoUrl } = req.body;
-        // Penanganan userId integer agar aman
-        let parsedUserId = null;
-        if (userId) {
-            const num = Number(userId);
-            if (!isNaN(num) && num < 2147483647) parsedUserId = num;
-        }
-
-        const query = `
-          UPDATE users 
-          SET fullname=$1, phone=$2, role=$3, salesman=$4, company_name=$5, company_reg=$6, company_address1=$7, company_address2=$8, logo_url=$9
-          WHERE id=$10 RETURNING *, logo_url as "logoUrl"
-        `;
-        const values = [fullname, req.body.phone, role, salesman, req.body.companyName, req.body.companyReg, req.body.companyAddress1, req.body.companyAddress2, logoUrl, parsedUserId];
-        
-        const result = await pool.query(query, values);
-        return res.status(200).json({ success: true, user: result.rows[0] });
-      }
+      
+      // Buat ID baru jika tidak dikirim dari frontend
+      const userId = id || Date.now(); 
+      
+      const newUser = await sql`
+        INSERT INTO users (id, name, email, password, phone, role) 
+        VALUES (${userId}, ${name}, ${email}, ${password}, ${phone || ''}, 'Admin') 
+        RETURNING *
+      `;
+      
+      return res.status(200).json({ success: true, user: newUser[0] });
+    } 
+    
+    // 3. Logika Update Profile & Pengaturan Invoice
+    else if (mode === 'update_profile') {
+      const updatedUser = await sql`
+        UPDATE users 
+        SET 
+          name = ${name || ''},
+          phone = ${phone || ''},
+          company_name = ${company_name || ''},
+          company_reg = ${company_reg || ''},
+          company_address1 = ${company_address1 || ''},
+          company_address2 = ${company_address2 || ''},
+          logo_url = ${logo_url || ''},
+          logo_align = ${logo_align || 'left'},
+          salesman = ${salesman || ''}
+        WHERE email = ${email}
+        RETURNING *
+      `;
+      
+      return res.status(200).json({ success: true, user: updatedUser[0] });
+    } 
+    
+    // Jika mode tidak dikenali
+    else {
+      return res.status(400).json({ success: false, message: 'Mode perintah tidak valid' });
     }
 
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
   } catch (error) {
+    console.error("Auth API Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
