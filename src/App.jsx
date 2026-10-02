@@ -548,9 +548,9 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      <table className="w-full text-[10px] mb-4 border-collapse">
+      <table className="w-full text-[11px] mb-4 border-collapse">
         <thead>
-          <tr className="border-y-[1.5px] border-black">
+          <tr className="border-y-[1.6px] border-black">
             <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
             <th className="py-1 text-center font-bold w-[9%]">Status</th>
             <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
@@ -560,10 +560,10 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <th className="py-1 text-right font-bold w-[9%]">Amount</th>
           </tr>
         </thead>
-        <tbody className="border-b-[1.5px] border-black">
+        <tbody className="border-b-[1.6px] border-black">
           {items.map((item, index) => (
             <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
-              <td className="py-1.5 align-top pr-1">
+              <td className="py-1.6 align-top pr-1">
                 <div className="flex gap-2">
                   <span className="w-3">{index + 1}</span>
                   <div>
@@ -617,13 +617,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       </div>
 
       <div className="pt-8 flex justify-between text-[10px] w-full pb-4">
-        <div className="w-[42%]">
+        <div className="w-[45%]">
           <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
-        <div className="w-[42%]">
+        <div className="w-[45%]">
           <div className="border-t border-black pt-1">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
+            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
