@@ -587,16 +587,18 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      <table className="w-full text-[11px] mb-4 border-collapse">
+      <table className="w-full text-[11px] mb-8 border-collapse mt-4">
         <thead>
-          <tr className="border-y-[1.5px] border-black">
-            <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
-            <th className="py-1 text-center font-bold w-[9%]">Status</th>
-            <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
-            <th className="py-1 text-center font-bold w-[12%]">QuantityUom</th>
-            <th className="py-1 text-right font-bold w-[8%]">Unit Price</th>
-            <th className="py-1 text-right font-bold w-[7%]">Discount</th>
-            <th className="py-1 text-right font-bold w-[9%]">Amount</th>
+          <tr className="border-y-2 border-black">
+            <th className="py-1.5 text-left font-bold w-[4%]">Item</th>
+            <th className="py-1.5 text-left font-bold w-[30%]">Description</th>
+            <th className="py-1.5 text-center font-bold w-[10%]">Status</th>
+            <th className="py-1.5 text-center font-bold w-[16%]">Warranty</th>
+            <th className="py-1.5 text-center font-bold w-[6%]">Quantity</th>
+            <th className="py-1.5 text-center font-bold w-[6%]">Uom</th>
+            <th className="py-1.5 text-right font-bold w-[10%]">Unit Price</th>
+            <th className="py-1.5 text-right font-bold w-[8%]">Discount</th>
+            <th className="py-1.5 text-right font-bold w-[10%]">Amount</th>
           </tr>
         </thead>
         <tbody className="border-b-[1.5px] border-black">
@@ -611,15 +613,16 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
                   </div>
                 </div>
               </td>
-              <td className="py-1.5 align-top text-center font-semibold">{item.status}</td>
-              <td className="py-1.5 align-top text-center text-[9px] text-black-700 px-1">{item.warranty || '-'}</td>
-              <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
-              <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
-              <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
-              <td className="py-1.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
+              <td className="py-2 align-top text-center font-bold">{item.status}</td>
+              <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
+              <td className="py-2 align-top text-center">{item.qty}</td>
+              <td className="py-2 align-top text-center">{item.uom}</td>
+              <td className="py-2 align-top text-right">{formatCurrency(item.price)}</td>
+              <td className="py-2 align-top text-right">{formatCurrency(item.discount)}</td>
+              <td className="py-2 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
-          <tr style={{ height: '10px' }}><td colSpan="7"></td></tr>
+          <tr style={{ height: '60px' }}><td colSpan="9"></td></tr>
         </tbody>
       </table>
 
