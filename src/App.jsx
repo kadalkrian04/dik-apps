@@ -23,7 +23,8 @@ export default function CashSalesApp() {
       companyName: '',
       companyReg: '',
       companyAddress1: '',
-      companyAddress2: ''
+      companyAddress2: '',
+      logoUrl: ''
     };
   });
 
@@ -47,13 +48,13 @@ export default function CashSalesApp() {
   };
 
   const [invoiceData, setInvoiceData] = useState({
-    companyName: currentUser.companyName || 'YUNG SIANG ENTERPRISE SDN BHD',
-    companyReg: currentUser.companyReg || 'Reg No.198701008364 Company No 167082-D',
-    companyAddress1: currentUser.companyAddress1 || 'P.O. BOX 38, 89727, KG LAMPUAS, MEMBAKUT',
-    companyAddress2: currentUser.companyAddress2 || 'SABAH, MALAYSIA',
+    companyName: currentUser.companyName || '',
+    companyReg: currentUser.companyReg || '',
+    companyAddress1: currentUser.companyAddress1 || '',
+    companyAddress2: currentUser.companyAddress2 || '',
     
     showLogo: true,
-    logoUrl: localStorage.getItem('dik_store_logo') || '',
+    logoUrl: currentUser.logoUrl || '',
 
     customerName: '',
     customerAddress: '',
@@ -150,7 +151,6 @@ export default function CashSalesApp() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
       
-      {/* GLOBAL PRINT STYLES - Ensures exact rendering of A4 */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -166,7 +166,6 @@ export default function CashSalesApp() {
         }
       `}} />
 
-      {/* TOP NAVBAR (Hidden in Print) */}
       <nav className="no-print bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
@@ -192,7 +191,6 @@ export default function CashSalesApp() {
         </div>
       </nav>
 
-      {/* MAIN WORKSPACE (Hidden in Print) */}
       <main className="no-print flex-1 overflow-auto relative p-3 md:p-6">
         {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} />}
         {activeTab === 'sales' && (
@@ -208,10 +206,9 @@ export default function CashSalesApp() {
           />
         )}
         {activeTab === 'reports' && <ReportsView />}
-        {activeTab === 'profile' && <ProfileView currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+        {activeTab === 'profile' && <ProfileView currentUser={currentUser} setCurrentUser={setCurrentUser} setInvoiceData={setInvoiceData} invoiceData={invoiceData} />}
       </main>
 
-      {/* DEDICATED PRINT AREA (Only visible in Print) */}
       <div className="hidden print-only print:block w-full absolute top-0 left-0 bg-white m-0 p-0 z-50">
         <A4Preview 
           invoiceData={invoiceData} items={items} 
@@ -316,53 +313,30 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
   const addItem = () => setItems([...items, { id: Date.now(), desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }]);
   const removeItem = (id) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
-  const handleLogoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleDataChange('logoUrl', reader.result);
-        localStorage.setItem('dik_store_logo', reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div className="space-y-4 md:space-y-6">
       
-      {/* SECTION 1: STORE LOGO & SETTINGS */}
-      <FormSection title="1. STORE LOGO & DISPLAY SETTINGS">
+      {/* SECTION 1: DISPLAY SETTINGS (Logo is now fetched from profile) */}
+      <FormSection title="1. DISPLAY SETTINGS">
         <div className="flex flex-col sm:flex-row gap-6 items-center">
            <div className="flex-shrink-0">
-              <label className="cursor-pointer relative flex flex-col items-center justify-center w-32 h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-100 transition-colors overflow-hidden group">
+              <div className="relative flex flex-col items-center justify-center w-32 h-32 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl overflow-hidden">
                  {invoiceData.logoUrl ? (
                    <img src={invoiceData.logoUrl} alt="Store Logo" className="w-full h-full object-contain p-2" />
                  ) : (
-                   <div className="flex flex-col items-center text-slate-500">
-                     <ImageIcon size={32} className="mb-2 opacity-50"/>
-                     <span className="text-[10px] font-bold uppercase">Upload Logo</span>
+                   <div className="flex flex-col items-center text-slate-400 text-center p-2">
+                     <ImageIcon size={24} className="mb-1 opacity-50"/>
+                     <span className="text-[9px] font-bold uppercase">No Logo in Profile</span>
                    </div>
                  )}
-                 <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                 {invoiceData.logoUrl && (
-                   <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white text-xs font-bold">
-                     Change
-                   </div>
-                 )}
-              </label>
+              </div>
            </div>
-           <div className="flex-1 space-y-4">
+           <div className="flex-1 space-y-2">
               <div className="flex items-center gap-3">
                  <input type="checkbox" id="showLogo" checked={invoiceData.showLogo} onChange={(e) => handleDataChange('showLogo', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded" />
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
-              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. Upload a square PNG or JPG for best results.</p>
-              {invoiceData.logoUrl && (
-                <button onClick={() => { handleDataChange('logoUrl', ''); localStorage.removeItem('dik_store_logo'); }} className="text-xs text-red-500 font-bold hover:underline">
-                  Remove Logo
-                </button>
-              )}
+              <p className="text-xs text-slate-500 max-w-md">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
            </div>
         </div>
       </FormSection>
@@ -535,7 +509,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* CUSTOMER & DOCUMENT INFO: Flex layout matching reference */}
+      {/* CUSTOMER & DOCUMENT INFO */}
       <div className="flex justify-between mb-4 text-[10px]">
         {/* Left Column */}
         <div className="w-[58%] pr-2 space-y-[2px]">
@@ -653,8 +627,8 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* FOOTER SIGNATURES - Flexible Position */}
-      <div className="mt-auto pt-8 flex justify-between text-[10px] w-full pb-4">
+      {/* FOOTER SIGNATURES - Flexible Position - Removed mt-auto so it flows perfectly under totals */}
+      <div className="pt-8 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
           <div className="border-t border-black pt-1 font-bold uppercase">{invoiceData.companyName}</div>
         </div>
@@ -788,10 +762,21 @@ function ReportsView() {
   );
 }
 
-function ProfileView({ currentUser, setCurrentUser }) {
+function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData }) {
   const [formData, setFormData] = useState(currentUser);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, logoUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -805,12 +790,14 @@ function ProfileView({ currentUser, setCurrentUser }) {
       const data = await res.json();
       if(data.success) {
         setCurrentUser(data.user);
+        setInvoiceData({...invoiceData, logoUrl: data.user.logoUrl || ''});
         setSaved(true); setTimeout(() => setSaved(false), 3000);
       } else {
         alert(data.message || 'Update failed');
       }
     } catch {
       setCurrentUser(formData);
+      setInvoiceData({...invoiceData, logoUrl: formData.logoUrl || ''});
       setSaved(true); setTimeout(() => setSaved(false), 3000);
     }
     setLoading(false);
@@ -819,8 +806,8 @@ function ProfileView({ currentUser, setCurrentUser }) {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-        <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center font-extrabold text-2xl">
-          {(formData.fullname || 'U').charAt(0)}
+        <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center font-extrabold text-2xl overflow-hidden">
+          {formData.logoUrl ? <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" /> : (formData.fullname || 'U').charAt(0)}
         </div>
         <div>
           <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname || 'New User'}</h2>
@@ -835,6 +822,38 @@ function ProfileView({ currentUser, setCurrentUser }) {
         {saved && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-xs font-bold flex items-center gap-2"><CheckCircle size={16} /> Update Saved!</div>}
 
         <form onSubmit={handleUpdate} className="space-y-6">
+          
+          {/* LOGO UPLOAD COMPONENT MOVED HERE */}
+          <div className="flex flex-col sm:flex-row gap-6 items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="flex-shrink-0">
+              <label className="cursor-pointer relative flex flex-col items-center justify-center w-24 h-24 bg-white border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors overflow-hidden group">
+                 {formData.logoUrl ? (
+                   <img src={formData.logoUrl} alt="Store Logo" className="w-full h-full object-contain p-1" />
+                 ) : (
+                   <div className="flex flex-col items-center text-slate-400">
+                     <ImageIcon size={24} className="mb-1 opacity-50"/>
+                     <span className="text-[9px] font-bold uppercase">Upload Logo</span>
+                   </div>
+                 )}
+                 <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                 {formData.logoUrl && (
+                   <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white text-xs font-bold">
+                     Change
+                   </div>
+                 )}
+              </label>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Store Logo</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">Upload your company logo here. It will be saved to your profile and automatically applied to all new invoices you create.</p>
+              {formData.logoUrl && (
+                <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className="text-xs text-red-500 font-bold hover:underline mt-2">
+                  Remove Logo
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
@@ -914,7 +933,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
       onLogin({ 
         id: Date.now().toString(),
         fullname: fullName || 'Admin DIK-APPS', email, phone, 
-        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName 
+        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName, logoUrl: '' 
       });
     }
     setLoading(false);
