@@ -25,7 +25,7 @@ export default function CashSalesApp() {
       companyAddress1: '',
       companyAddress2: '',
       logoUrl: '',
-      logoAlign: 'left' // Default state alignment
+      logoAlign: 'left' 
     };
   });
 
@@ -56,7 +56,7 @@ export default function CashSalesApp() {
     
     showLogo: true,
     logoUrl: currentUser.logoUrl || '',
-    logoAlign: currentUser.logoAlign || 'left', // Integrasi logo kiri/kanan
+    logoAlign: currentUser.logoAlign || 'left', 
 
     customerName: '',
     customerAddress: '',
@@ -166,31 +166,44 @@ export default function CashSalesApp() {
           .no-print { display: none !important; }
           .print-only { display: block !important; }
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
 
-      <nav className="no-print bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
-            <Smartphone size={20} />
+      {/* NAVBAR MOBILE FRIENDLY */}
+      <nav className="no-print bg-white border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between sticky top-0 z-50 shadow-sm">
+        
+        <div className="flex items-center justify-between p-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">DIK-APPS STORE</h1>
+              <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">DIK-APPS STORE</h1>
-            <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
-          </div>
+          
+          {/* Tombol Logout Mobile */}
+          <button onClick={() => { setIsAuthenticated(false); localStorage.clear(); }} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
+            <LogOut size={18} />
+          </button>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
+        {/* Tab Menu - Bisa di Scroll Horizontal di HP */}
+        <div className="flex items-center gap-1 md:gap-2 bg-slate-100 p-1 md:rounded-lg border-y md:border border-slate-200 overflow-x-auto no-scrollbar mx-0 md:mx-2">
           <TabButton icon={<LayoutDashboard size={16} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <TabButton icon={<FileEdit size={16} />} label="Cash Sales" isActive={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
           <TabButton icon={<BarChart3 size={16} />} label="Reports" isActive={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
           <TabButton icon={<User size={16} />} label="Profile" isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 p-3 md:px-6">
           <button onClick={() => { setIsAuthenticated(false); localStorage.clear(); }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
             <LogOut size={16} /> Logout
           </button>
         </div>
+
       </nav>
 
       <main className="no-print flex-1 overflow-auto relative p-3 md:p-6">
@@ -225,7 +238,7 @@ export default function CashSalesApp() {
 
 function TabButton({ icon, label, isActive, onClick }) {
   return (
-    <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${isActive ? 'bg-white text-indigo-700 shadow-sm border border-slate-200 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}>
+    <button onClick={onClick} className={`flex items-center whitespace-nowrap gap-2 px-3 py-2 md:px-4 rounded-md text-sm font-medium transition-all ${isActive ? 'bg-white text-indigo-700 shadow-sm border border-slate-200 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}>
       {icon} {label}
     </button>
   );
@@ -295,7 +308,6 @@ function SalesWorkspace({
             items={items} setItems={setItems} subTotal={subTotal} totalAmount={totalAmount}
           />
         ) : (
-          /* MOBILE FRIENDLY A4 PREVIEW WRAPPER */
           <div className="w-full bg-slate-200 p-2 md:p-8 rounded-xl shadow-inner overflow-x-auto">
             <div className="pointer-events-none origin-top mx-auto w-[794px] print:w-auto shadow-2xl bg-white">
                <A4Preview 
@@ -341,7 +353,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
               
-              {/* LOGO ALIGNMENT TOGGLE */}
+              {/* OPSI KIRI DAN TENGAH */}
               {invoiceData.showLogo && (
                 <div className="flex items-center gap-3 pl-8">
                   <label className="text-xs font-bold text-slate-600">Logo Alignment:</label>
@@ -351,7 +363,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                     className="bg-white border border-slate-300 rounded p-1 text-xs font-medium outline-none"
                   >
                     <option value="left">Left (Kiri)</option>
-                    <option value="right">Right (Kanan)</option>
+                    <option value="center">Center Top (Tengah Atas)</option>
                   </select>
                 </div>
               )}
@@ -509,11 +521,16 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
   return (
     <div className="w-[794px] min-h-[1123px] print:w-[210mm] print:min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
-      {/* HEADER LOGO KIRI / KANAN LOGIC */}
+      {/* OPSI LOGO TENGAH ATAS */}
+      {invoiceData.logoAlign === 'center' && invoiceData.showLogo && invoiceData.logoUrl && (
+        <div className="flex justify-center mb-4">
+           <img src={invoiceData.logoUrl} alt="Logo" className="h-[70px] object-contain" />
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-6">
-        
-        {/* Kolom Info Perusahaan (Kiri) */}
         <div className="flex gap-4 items-start max-w-[65%]">
+          {/* OPSI LOGO KIRI */}
           {invoiceData.logoAlign === 'left' && invoiceData.showLogo && invoiceData.logoUrl && (
              <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
           )}
@@ -523,17 +540,9 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <p className="text-[10px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
           </div>
         </div>
-        
-        {/* Kolom Dokumen Info (Kanan) */}
-        <div className="flex flex-col items-end gap-2">
-          {invoiceData.logoAlign === 'right' && invoiceData.showLogo && invoiceData.logoUrl && (
-             <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
-          )}
-          <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
-            {invoiceData.docTitle}
-          </div>
+        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
+          {invoiceData.docTitle}
         </div>
-
       </div>
 
       <div className="flex justify-between mb-4 text-[10px]">
@@ -902,7 +911,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                       className="bg-white border border-slate-300 rounded p-1.5 text-xs font-medium outline-none"
                     >
                       <option value="left">Left (Kiri)</option>
-                      <option value="right">Right (Kanan)</option>
+                      <option value="center">Center Top (Tengah Atas)</option>
                     </select>
                  </div>
                  {formData.logoUrl && (
