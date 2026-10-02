@@ -567,13 +567,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
                 <div className="flex gap-2">
                   <span className="w-3">{index + 1}</span>
                   <div>
-                    <div className="font-semibold leading-tight">{item.desc || '-'}</div>
-                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-gray-700 font-medium">SN/IMEI: {item.imei}</div>}
+                    <div className="font-bold leading-tight">{item.desc || '-'}</div>
+                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-black-700 font-medium">SN/IMEI: {item.imei}</div>}
                   </div>
                 </div>
               </td>
               <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
-              <td className="py-1.5 align-top text-center text-[9px] text-gray-700 px-1">{item.warranty || '-'}</td>
+              <td className="py-1.5 align-top text-center text-[9px] text-black-700 px-1">{item.warranty || '-'}</td>
               <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
               <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
               <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
@@ -587,7 +587,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       <div className="flex justify-between text-[10px] mt-1 mb-8">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
-            <span className="font-bold">Malaysia Ringgit</span><span> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
+            <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
           <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
