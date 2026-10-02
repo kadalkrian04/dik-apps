@@ -587,6 +587,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
+      {/* TABEL BARANG */}
       <table className="w-full text-[11px] mb-8 border-collapse mt-4">
         <thead>
           <tr className="border-y-2 border-black">
@@ -601,17 +602,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <th className="py-1.5 text-right font-bold w-[10%]">Amount</th>
           </tr>
         </thead>
-        <tbody className="border-b-[1.5px] border-black">
+        <tbody>
           {items.map((item, index) => (
-            <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
-              <td className="py-1.5 align-top pr-1">
-                <div className="flex gap-2">
-                  <span className="w-3">{index + 1}</span>
-                  <div>
-                    <div className="font-bold leading-tight">{item.desc || '-'}</div>
-                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-black-700 font-medium">SN/IMEI: {item.imei}</div>}
-                  </div>
-                </div>
+            <tr key={item.id}>
+              <td className="py-2 align-top">{index + 1}</td>
+              <td className="py-2 align-top">
+                <div className="font-semibold">{item.desc}</div>
+                {item.imei && item.imei !== '-' && <div className="text-[10px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
               </td>
               <td className="py-2 align-top text-center font-bold">{item.status}</td>
               <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
