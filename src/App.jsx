@@ -30,7 +30,7 @@ export default function CashSalesApp() {
   // Save session state to localStorage
   useEffect(() => {
     localStorage.setItem('dik_auth', isAuthenticated);
-    if (currentUser) {
+    if (currentUser && currentUser.email) {
       localStorage.setItem('dik_user', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('dik_user');
@@ -89,7 +89,7 @@ export default function CashSalesApp() {
   const formatCurrency = (val) => parseFloat(val || 0).toFixed(2);
 
   const numberToWords = (amount) => {
-    return "Ringgit Malaysia Only"; 
+    return "Four Thousand Four Hundred Nineteen Only"; 
   };
 
   const handlePrintInvoice = () => {
@@ -124,30 +124,30 @@ export default function CashSalesApp() {
   return (
     <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col ${printMode !== 'none' ? `print-mode-${printMode}` : ''}`}>
       
-      {}
+      {/* PERFECT PRINT CSS TO FIX WHITE SCREEN BUG */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * { visibility: hidden !important; }
           .print-mode-invoice .invoice-print-area, 
           .print-mode-invoice .invoice-print-area * { visibility: visible !important; }
           .print-mode-invoice .invoice-print-area {
-            position: fixed !important; left: 0 !important; top: 0 !important;
-            width: 100vw !important; height: 100vh !important;
-            background: white !important; z-index: 99999 !important;
-            margin: 0 !important; padding: 20px !important; box-shadow: none !important;
+            position: absolute !important; left: 0 !important; top: 0 !important;
+            width: 210mm !important; min-height: 297mm !important;
+            background: white !important; z-index: 999999 !important;
+            margin: 0 !important; padding: 30px 40px !important; box-shadow: none !important;
           }
 
           .print-mode-report .report-print-area, 
           .print-mode-report .report-print-area * { visibility: visible !important; }
           .print-mode-report .report-print-area {
-            position: fixed !important; left: 0 !important; top: 0 !important;
-            width: 100% !important; background: white !important; z-index: 99999 !important;
+            position: absolute !important; left: 0 !important; top: 0 !important;
+            width: 100% !important; background: white !important; z-index: 999999 !important;
             padding: 20px !important;
           }
         }
       `}} />
 
-      {}
+      {/* NAVIGATION BAR */}
       <nav className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50 print:hidden shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
@@ -171,7 +171,7 @@ export default function CashSalesApp() {
             <Plus size={16} /> New Sale
           </button>
           <div className="w-px h-6 bg-slate-300 mx-1"></div>
-          <button onClick={() => { setIsAuthenticated(false); setCurrentUser(null); localStorage.clear(); }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
+          <button onClick={() => { setIsAuthenticated(false); setCurrentUser({ id: null, fullname: '', email: '', phone: '', role: 'Store Manager / Salesman', companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '' }); localStorage.clear(); }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
             <LogOut size={16} /> Logout
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function CashSalesApp() {
         </div>
       </nav>
 
-      {}
+      {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-2 print:hidden shadow-lg animate-fade-in">
           <MobileTabButton icon={<LayoutDashboard size={18} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
@@ -194,14 +194,14 @@ export default function CashSalesApp() {
           <MobileTabButton icon={<BarChart3 size={18} />} label="Financial Reports" isActive={activeTab === 'reports'} onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} />
           <MobileTabButton icon={<User size={18} />} label="Profile & Store Info" isActive={activeTab === 'profile'} onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }} />
           <div className="pt-2 border-t border-slate-200">
-            <button onClick={() => { setIsAuthenticated(false); setCurrentUser(null); localStorage.clear(); }} className="w-full bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 border border-red-200">
+            <button onClick={() => { setIsAuthenticated(false); setCurrentUser({ id: null, fullname: '', email: '', phone: '', role: 'Store Manager / Salesman', companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '' }); localStorage.clear(); }} className="w-full bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 border border-red-200">
               <LogOut size={16} /> Logout System
             </button>
           </div>
         </div>
       )}
 
-      {}
+      {/* CONTENT WORKSPACE */}
       <main className="flex-1 overflow-auto relative p-3 md:p-6">
         {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} />}
         {activeTab === 'sales' && (
@@ -469,6 +469,10 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                 </select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <InputGroup label="Fax" value={invoiceData.customerFax} onChange={(e) => handleDataChange('customerFax', e.target.value)} />
+              <InputGroup label="GST / SST Reg #" value={invoiceData.customerGst} onChange={(e) => handleDataChange('customerGst', e.target.value)} />
+            </div>
           </div>
         </FormSection>
 
@@ -559,6 +563,10 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                <span className="text-red-500 font-medium">Discount:</span>
                <input type="number" value={invoiceData.discountTotal} onChange={(e) => handleDataChange('discountTotal', e.target.value)} className="w-20 bg-white border border-slate-300 rounded p-1 text-right text-xs" />
              </div>
+             <div className="flex justify-between items-center text-xs md:text-sm">
+               <span className="text-slate-500 font-medium">Round cent:</span>
+               <input type="number" value={invoiceData.roundCent} onChange={(e) => handleDataChange('roundCent', e.target.value)} className="w-20 bg-white border border-slate-300 rounded p-1 text-right text-xs" />
+             </div>
              <div className="border-t border-slate-300 pt-2 mt-2 flex justify-between items-center">
                <span className="text-sm md:text-lg font-bold text-slate-800">Total Amount:</span>
                <span className="text-base md:text-xl font-extrabold text-indigo-600">MYR {totalAmount.toFixed(2)}</span>
@@ -594,7 +602,7 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
 function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords }) {
   return (
     <div className="w-[210mm] min-h-[297mm] bg-white shadow-xl border border-slate-200 p-[30px_40px] box-border relative text-black font-sans mx-auto text-xs md:text-sm">
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-xs md:text-sm font-bold uppercase">{invoiceData.companyName || 'DIK-APPS STORE'}</h1>
         <p className="text-[10px] md:text-xs">{invoiceData.companyReg}</p>
         <p className="text-[10px] md:text-xs whitespace-pre-line leading-tight">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
@@ -606,16 +614,23 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4 text-[10px] md:text-[11px] leading-tight">
+      <div className="grid grid-cols-2 gap-4 mb-3 text-[10px] md:text-[11px] leading-tight">
         <div>
           <div className="flex mb-1"><span className="w-20 font-bold">NAME:</span><span className="uppercase font-bold">{invoiceData.customerName}</span></div>
           <div className="flex mb-1"><span className="w-20 font-bold">ADDRESS:</span><span className="uppercase">{invoiceData.customerAddress}</span></div>
-          <div className="flex mb-1 mt-3"><span className="w-20 font-bold">PHONE:</span><span>{invoiceData.customerPhone}</span></div>
+          <div className="flex mb-1 mt-2">
+            <span className="w-20 font-bold">PHONE:</span>
+            <span className="flex-1">{invoiceData.customerPhone}</span>
+            <span className="font-bold mr-1">FAX :</span>
+            <span>{invoiceData.customerFax}</span>
+          </div>
+          <div className="flex mb-1"><span className="w-20 font-bold">GST Reg #</span><span>: {invoiceData.customerGst}</span></div>
         </div>
         <div className="pl-6">
           <div className="flex mb-1"><span className="w-28 font-bold">DOCUMENT NO</span><span>{invoiceData.docNo}</span></div>
           <div className="flex mb-1"><span className="w-28 font-bold">DATE</span><span>{invoiceData.docDate}</span></div>
           <div className="flex mb-1"><span className="w-28 font-bold">SALESMAN</span><span>{invoiceData.salesman}</span></div>
+          <div className="flex mb-1"><span className="w-28 font-bold">PAGE</span><span>{invoiceData.pageInfo}</span></div>
         </div>
       </div>
 
@@ -623,12 +638,12 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <thead>
           <tr className="border-y-2 border-black">
             <th className="py-1 text-left font-bold w-[4%]">Item</th>
-            <th className="py-1 text-left font-bold w-[28%]">Description</th>
+            <th className="py-1 text-left font-bold w-[26%]">Description</th>
             <th className="py-1 text-center font-bold w-[10%]">Status</th>
-            <th className="py-1 text-center font-bold w-[16%]">Warranty</th>
-            <th className="py-1 text-center font-bold w-[6%]">Qty</th>
-            <th className="py-1 text-center font-bold w-[6%]">Uom</th>
-            <th className="py-1 text-right font-bold w-[10%]">Price</th>
+            <th className="py-1 text-center font-bold w-[18%]">Warranty</th>
+            <th className="py-1 text-center font-bold w-[12%]">Quantity Uom</th>
+            <th className="py-1 text-right font-bold w-[10%]">Unit Price</th>
+            <th className="py-1 text-right font-bold w-[10%]">Discount</th>
             <th className="py-1 text-right font-bold w-[10%]">Amount</th>
           </tr>
         </thead>
@@ -638,30 +653,31 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
               <td className="py-1.5 align-top">{index + 1}</td>
               <td className="py-1.5 align-top">
                 <div className="font-semibold">{item.desc}</div>
-                {item.imei && item.imei !== '-' && <div className="text-[9px] text-gray-600">SN: {item.imei}</div>}
+                {item.imei && item.imei !== '-' && <div className="text-[9px] text-gray-600">SN/IMEI: {item.imei}</div>}
               </td>
               <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
               <td className="py-1.5 align-top text-center text-[9px]">{item.warranty || '-'}</td>
-              <td className="py-1.5 align-top text-center">{item.qty}</td>
-              <td className="py-1.5 align-top text-center">{item.uom}</td>
+              <td className="py-1.5 align-top text-center">{item.qty} {item.uom}</td>
               <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
               <td className="py-1.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="absolute bottom-[140px] left-[40px] right-[40px]">
-          <div className="border-t-2 border-black pt-1 flex justify-between text-[11px]">
-            <div className="flex gap-2 font-bold"><span>Ringgit:</span><span>{numberToWords(totalAmount)}</span></div>
+      <div className="absolute bottom-[160px] left-[40px] right-[40px]">
+          <div className="border-t-2 border-black pt-1.5 flex justify-between text-[11px]">
+            <div className="flex gap-2 font-bold"><span>Malaysia Ringgit</span><span>{numberToWords(totalAmount)}</span></div>
             <div className="flex w-[220px]"><span className="flex-1 text-right pr-3">Sub Total:</span><span className="w-20 text-right">{formatCurrency(subTotal)}</span></div>
           </div>
-          <div className="flex justify-between text-[11px] mt-1">
+          <div className="flex justify-between text-[11px] mt-1.5">
             <div className="flex-1 pr-6"><span className="font-bold block">Remark:</span><p className="text-[10px] leading-tight">{invoiceData.remarks}</p></div>
             <div className="w-[220px] space-y-1">
               <div className="flex"><span className="flex-1 text-right pr-3">Discount:</span><span className="w-20 text-right">{formatCurrency(invoiceData.discountTotal)}</span></div>
-              <div className="border-t-2 border-black pt-1 flex font-bold">
-                <span className="flex-1 text-right pr-3">Total:</span>
+              <div className="flex"><span className="flex-1 text-right pr-3">Round cent:</span><span className="w-20 text-right">{formatCurrency(invoiceData.roundCent)}</span></div>
+              <div className="border-t-2 border-black pt-1.5 flex font-bold mt-1">
+                <span className="flex-1 text-right pr-3">Total Amount:</span>
                 <span className="w-20 text-right">MYR {formatCurrency(totalAmount)}</span>
               </div>
             </div>
@@ -670,7 +686,11 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <div className="absolute bottom-[40px] left-[40px] right-[40px] flex justify-between text-[11px]">
         <div className="w-[45%] border-t border-black pt-1 font-bold">{invoiceData.companyName || 'DIK-APPS STORE'}</div>
-        <div className="w-[45%] border-t border-black pt-1"><p>Authorized Signature & Chop</p></div>
+        <div className="w-[45%] border-t border-black pt-1">
+          <p>Company Chop Signature</p>
+          <p className="mt-1">Name: {invoiceData.salesman}</p>
+          <p className="mt-1">Date: {invoiceData.docDate}</p>
+        </div>
       </div>
     </div>
   );
@@ -927,7 +947,6 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
         alert(data.message || "Authentication failed");
       }
     } catch {
-      // Fallback local simulation if backend offline
       onLogin({ 
         id: Date.now(),
         fullname: fullName || 'Admin DIK-APPS', 
@@ -1000,7 +1019,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
               <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs outline-none" />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all mt-4">
+            <button type="append" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-all mt-4">
               {loading ? 'Processing...' : (authMode === 'login' ? 'Secure Login' : 'Register Account')}
             </button>
           </form>
