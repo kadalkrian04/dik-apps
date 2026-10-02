@@ -589,7 +589,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <table className="w-full text-[11px] mb-4 border-collapse">
         <thead>
-          <tr className="border-y-[1.6px] border-black">
+          <tr className="border-y-[1.5px] border-black">
             <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
             <th className="py-1 text-center font-bold w-[9%]">Status</th>
             <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
@@ -599,10 +599,10 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <th className="py-1 text-right font-bold w-[9%]">Amount</th>
           </tr>
         </thead>
-        <tbody className="border-b-[1.6px] border-black">
+        <tbody className="border-b-[1.5px] border-black">
           {items.map((item, index) => (
             <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
-              <td className="py-1.6 align-top pr-1">
+              <td className="py-1.5 align-top pr-1">
                 <div className="flex gap-2">
                   <span className="w-3">{index + 1}</span>
                   <div>
@@ -611,7 +611,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
                   </div>
                 </div>
               </td>
-              <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
+              <td className="py-1.5 align-top text-center font-semibold">{item.status}</td>
               <td className="py-1.5 align-top text-center text-[9px] text-black-700 px-1">{item.warranty || '-'}</td>
               <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
               <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
