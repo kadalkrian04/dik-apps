@@ -18,7 +18,6 @@ export default function CashSalesApp() {
       fullname: '',
       email: '',
       phone: '',
-      role: 'Client',
       salesman: '',
       companyName: '',
       companyReg: '',
@@ -68,7 +67,7 @@ export default function CashSalesApp() {
     docTitle: 'CASH SALES',
     docNo: localStorage.getItem('dik_last_doc_no') || '',
     docDate: getTodayDate(),
-    salesman: currentUser.salesman || currentUser.fullname || 'Admin',
+    salesman: currentUser.salesman || currentUser.fullname || '', // Default dari user profile atau kosong
     pageInfo: 'Page 1 of 1',
     
     remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
@@ -139,7 +138,7 @@ export default function CashSalesApp() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.reload(); // Hard refresh agar state benar-benar kembali ke nol
+    window.location.reload(); 
   };
 
   if (!isAuthenticated) {
@@ -175,9 +174,8 @@ export default function CashSalesApp() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
 
-      {/* NAVBAR MOBILE FRIENDLY */}
+      {/* NAVBAR */}
       <nav className="no-print bg-white border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between sticky top-0 z-50 shadow-sm">
-        
         <div className="flex items-center justify-between p-3 md:px-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
@@ -188,14 +186,11 @@ export default function CashSalesApp() {
               <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
             </div>
           </div>
-          
-          {/* Tombol Logout Mobile */}
           <button onClick={handleLogout} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
             <LogOut size={18} />
           </button>
         </div>
 
-        {/* Tab Menu - Bisa di Scroll Horizontal di HP */}
         <div className="flex items-center gap-1 md:gap-2 bg-slate-100 p-1 md:rounded-lg border-y md:border border-slate-200 overflow-x-auto no-scrollbar mx-0 md:mx-2">
           <TabButton icon={<LayoutDashboard size={16} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <TabButton icon={<FileEdit size={16} />} label="Cash Sales" isActive={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
@@ -208,7 +203,6 @@ export default function CashSalesApp() {
             <LogOut size={16} /> Logout
           </button>
         </div>
-
       </nav>
 
       <main className="no-print flex-1 overflow-auto relative p-3 md:p-6">
@@ -230,12 +224,16 @@ export default function CashSalesApp() {
       </main>
 
       <div className="hidden print-only print:block w-full absolute top-0 left-0 bg-white m-0 p-0 z-50">
-        <A4Preview 
-          invoiceData={invoiceData} items={items} 
-          calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
-          subTotal={subTotal} totalAmount={totalAmount} numberToWords={numberToWords} 
-          currentUser={currentUser}
-        />
+        {activeTab === 'reports' ? (
+             <ReportPrintPreview currentUser={currentUser} />
+        ) : (
+            <A4Preview 
+                invoiceData={invoiceData} items={items} 
+                calculateItemAmount={calculateItemAmount} formatCurrency={formatCurrency} 
+                subTotal={subTotal} totalAmount={totalAmount} numberToWords={numberToWords} 
+                currentUser={currentUser}
+            />
+        )}
       </div>
     </div>
   );
@@ -337,7 +335,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
 
   return (
     <div className="space-y-4 md:space-y-6">
-      
       <FormSection title="1. DISPLAY SETTINGS">
         <div className="flex flex-col sm:flex-row gap-6 items-center">
            <div className="flex-shrink-0">
@@ -625,7 +622,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </tbody>
       </table>
 
-      {/* PENAMBAHAN BORDER ATAS MALAYSIA RINGGIT SEPERTI PERMINTAAN */}
       <div className="flex justify-between text-[10px] mt-1 mb-8 border-t-[1.5px] border-black pt-2">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
@@ -684,7 +680,6 @@ function DashboardView({ setActiveTab, currentUser }) {
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {
-          // FILTER: Hanya menampilkan data milik user yang sedang login!
           const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
           setRecentSales(userSales);
         }
@@ -693,7 +688,6 @@ function DashboardView({ setActiveTab, currentUser }) {
       .catch(() => setLoading(false));
   }, [currentUser.id]);
 
-  // KALKULASI DINAMIS UNTUK STAT CARD
   const totalSales = recentSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
   const totalReceipts = recentSales.length;
   const totalItems = recentSales.reduce((sum, sale) => {
@@ -724,7 +718,6 @@ function DashboardView({ setActiveTab, currentUser }) {
         </div>
       </div>
 
-      {/* STAT CARD DINAMIS (Tidak lagi hardcoded 12,801 MYR) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="TOTAL SALES" value={`MYR ${totalSales.toFixed(2)}`} sub="All time record" icon={<DollarSign size={20}/>} color="emerald" />
         <StatCard title="RECEIPTS ISSUED" value={`${totalReceipts} Bills`} sub="Saved in database" icon={<FileSpreadsheet size={20}/>} color="blue" />
@@ -741,6 +734,7 @@ function DashboardView({ setActiveTab, currentUser }) {
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] md:text-[11px] font-bold tracking-wider">
               <tr>
                 <th className="px-4 md:px-6 py-3">Bill No</th>
+                <th className="px-4 md:px-6 py-3">Date</th>
                 <th className="px-4 md:px-6 py-3">Customer</th>
                 <th className="px-4 md:px-6 py-3">Items</th>
                 <th className="px-4 md:px-6 py-3 text-right">Amount (MYR)</th>
@@ -748,13 +742,14 @@ function DashboardView({ setActiveTab, currentUser }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan="4" className="text-center py-4 text-slate-500 text-xs">Loading database records...</td></tr>
+                <tr><td colSpan="5" className="text-center py-4 text-slate-500 text-xs">Loading database records...</td></tr>
               ) : recentSales.length === 0 ? (
-                <tr><td colSpan="4" className="text-center py-4 text-slate-500 text-xs">No saved receipts yet</td></tr>
+                <tr><td colSpan="5" className="text-center py-4 text-slate-500 text-xs">No saved receipts yet</td></tr>
               ) : (
                 recentSales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-slate-50">
                     <td className="px-4 md:px-6 py-3 font-bold text-slate-800 text-xs md:text-sm">{sale.doc_no || sale.docNo}</td>
+                    <td className="px-4 md:px-6 py-3 text-slate-700 text-xs md:text-sm">{new Date(sale.created_at || Date.now()).toLocaleDateString('en-GB')}</td>
                     <td className="px-4 md:px-6 py-3 text-slate-700 text-xs md:text-sm">{sale.customer_name || sale.customerName}</td>
                     <td className="px-4 md:px-6 py-3 text-slate-500 text-xs">
                       {sale.items ? (typeof sale.items === 'string' ? JSON.parse(sale.items).length : sale.items.length) : 0} items
@@ -785,49 +780,226 @@ function StatCard({ title, value, sub, icon, color }) {
   );
 }
 
+// VIEW LAPORAN YANG TELAH DIPERBAIKI (Filter Waktu & Ekspor Profesional)
 function ReportsView({ currentUser }) {
-  const [totalIncome, setTotalIncome] = useState(0);
-
+  const [salesData, setSalesData] = useState([]);
+  const [filteredSales, setFilteredSales] = useState([]);
+  const [timeFilter, setTimeFilter] = useState('1M'); // '1M', '3M', '6M', 'ALL'
+  
   useEffect(() => {
     fetch('/api/invoices')
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {
           const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
-          const sum = userSales.reduce((acc, sale) => acc + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
-          setTotalIncome(sum);
+          setSalesData(userSales);
         }
       })
       .catch(() => {});
   }, [currentUser.id]);
 
-  const exportToExcel = () => alert("Exporting to Excel...");
+  // Logic untuk filter berdasarkan waktu
+  useEffect(() => {
+    if (salesData.length === 0) return;
+    
+    const now = new Date();
+    const filtered = salesData.filter(sale => {
+      if (timeFilter === 'ALL') return true;
+      
+      const saleDate = new Date(sale.created_at || Date.now());
+      const diffTime = Math.abs(now - saleDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (timeFilter === '1M') return diffDays <= 30;
+      if (timeFilter === '3M') return diffDays <= 90;
+      if (timeFilter === '6M') return diffDays <= 180;
+      return true;
+    });
+    
+    setFilteredSales(filtered);
+  }, [salesData, timeFilter]);
+
+  const totalIncome = filteredSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
+  const totalInvoices = filteredSales.length;
+
+  const exportToCSV = () => {
+    if (filteredSales.length === 0) return alert("No data to export.");
+    
+    const headers = ["Date", "Invoice No", "Customer Name", "Total Amount (MYR)"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredSales.map(sale => {
+        const date = new Date(sale.created_at || Date.now()).toLocaleDateString('en-GB');
+        const docNo = sale.doc_no || sale.docNo || '-';
+        const name = `"${(sale.customer_name || sale.customerName || '').replace(/"/g, '""')}"`;
+        const amount = parseFloat(sale.total_amount || sale.totalAmount || 0).toFixed(2);
+        return `${date},${docNo},${name},${amount}`;
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Sales_Report_${timeFilter}_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = () => {
+    window.print(); // Memanfaatkan fitur browser print untuk menghasilkan PDF
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-slate-800">Financial Reports</h2>
-          <p className="text-xs md:text-sm text-slate-500">Sales Statements</p>
+          <p className="text-xs md:text-sm text-slate-500">Sales Statements & Performance</p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <button onClick={exportToExcel} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5">
-            <Download size={14} /> Excel
+           <select 
+              value={timeFilter} 
+              onChange={(e) => setTimeFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-bold text-slate-700 outline-none"
+           >
+              <option value="1M">Last 1 Month</option>
+              <option value="3M">Last 3 Months</option>
+              <option value="6M">Last 6 Months</option>
+              <option value="ALL">All Time</option>
+           </select>
+
+          <button onClick={exportToCSV} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+            <FileSpreadsheet size={16} /> Excel (CSV)
+          </button>
+          <button onClick={exportToPDF} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+             <Printer size={16} /> Export PDF
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-indigo-50 border border-indigo-100 p-4 md:p-6 rounded-xl">
             <p className="text-xs font-bold text-indigo-500 mb-1">Total Sales Income</p>
             <h4 className="text-xl md:text-2xl font-extrabold text-indigo-900">MYR {totalIncome.toFixed(2)}</h4>
+            <p className="text-[10px] text-indigo-400 mt-2">Filter: {timeFilter === 'ALL' ? 'All Time' : `Last ${timeFilter.replace('M', ' Months')}`}</p>
           </div>
+          <div className="bg-blue-50 border border-blue-100 p-4 md:p-6 rounded-xl">
+            <p className="text-xs font-bold text-blue-500 mb-1">Total Invoices Created</p>
+            <h4 className="text-xl md:text-2xl font-extrabold text-blue-900">{totalInvoices} Bills</h4>
+            <p className="text-[10px] text-blue-400 mt-2">Successful transactions</p>
+          </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-6">
+         <div className="p-4 border-b border-slate-200 bg-slate-50">
+            <h3 className="font-bold text-slate-800 text-sm">Detailed Breakdown</h3>
+         </div>
+         <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-white border-b border-slate-200 text-slate-500 uppercase text-[10px] md:text-[11px] font-bold tracking-wider">
+              <tr>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Invoice No.</th>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3 text-right">Amount (MYR)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+               {filteredSales.length === 0 ? (
+                   <tr><td colSpan="4" className="text-center py-6 text-slate-500 text-xs">No records found for this period.</td></tr>
+               ) : (
+                   filteredSales.map((sale) => (
+                    <tr key={sale.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-700 text-xs">{new Date(sale.created_at || Date.now()).toLocaleDateString('en-GB')}</td>
+                        <td className="px-4 py-3 font-bold text-slate-800 text-xs">{sale.doc_no || sale.docNo || '-'}</td>
+                        <td className="px-4 py-3 text-slate-700 text-xs">{sale.customer_name || sale.customerName || '-'}</td>
+                        <td className="px-4 py-3 text-right font-bold text-indigo-700 text-xs">{parseFloat(sale.total_amount || sale.totalAmount || 0).toFixed(2)}</td>
+                    </tr>
+                   ))
+               )}
+            </tbody>
+          </table>
+         </div>
       </div>
     </div>
   );
 }
 
+// Tampilan khusus Print untuk Laporan
+function ReportPrintPreview({ currentUser }) {
+    const [salesData, setSalesData] = useState([]);
+  
+    useEffect(() => {
+      fetch('/api/invoices')
+        .then(res => res.json())
+        .then(data => {
+          if(Array.isArray(data)) {
+            const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
+            setSalesData(userSales);
+          }
+        })
+        .catch(() => {});
+    }, [currentUser.id]);
+
+    const totalIncome = salesData.reduce((sum, sale) => sum + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
+
+    return (
+        <div className="w-full bg-white text-black p-10 font-sans print:w-[210mm] print:h-auto mx-auto">
+            <div className="text-center border-b-2 border-black pb-4 mb-6">
+                <h1 className="text-2xl font-bold uppercase">{currentUser.companyName || 'SALES REPORT'}</h1>
+                <p className="text-sm mt-1">Official Financial Statement</p>
+                <p className="text-xs text-gray-600 mt-1">Generated on: {new Date().toLocaleDateString('en-GB')}</p>
+            </div>
+            
+            <div className="mb-6 flex justify-between text-sm">
+                <div>
+                    <span className="font-bold">Total Invoices: </span> {salesData.length} Bills
+                </div>
+                <div>
+                    <span className="font-bold">Total Revenue: </span> MYR {totalIncome.toFixed(2)}
+                </div>
+            </div>
+
+            <table className="w-full text-xs border-collapse">
+                <thead>
+                    <tr className="border-y-[1.5px] border-black text-left">
+                        <th className="py-2 px-1">Date</th>
+                        <th className="py-2 px-1">Invoice No.</th>
+                        <th className="py-2 px-1">Customer</th>
+                        <th className="py-2 px-1 text-right">Amount (MYR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {salesData.map(sale => (
+                        <tr key={sale.id} className="border-b border-gray-200 border-dashed">
+                            <td className="py-2 px-1">{new Date(sale.created_at || Date.now()).toLocaleDateString('en-GB')}</td>
+                            <td className="py-2 px-1 font-semibold">{sale.doc_no || sale.docNo || '-'}</td>
+                            <td className="py-2 px-1">{sale.customer_name || sale.customerName || '-'}</td>
+                            <td className="py-2 px-1 text-right font-bold">{parseFloat(sale.total_amount || sale.totalAmount || 0).toFixed(2)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <div className="mt-8 text-right border-t-[1.5px] border-black pt-2">
+                <span className="font-bold text-sm">GRAND TOTAL: MYR {totalIncome.toFixed(2)}</span>
+            </div>
+            <div className="mt-20 text-center text-[10px] text-gray-500">
+                End of Report
+            </div>
+        </div>
+    );
+}
+
 function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData }) {
-  const [formData, setFormData] = useState(currentUser);
+  const [formData, setFormData] = useState({
+      ...currentUser,
+      companyName: currentUser.companyName || '',
+      companyReg: currentUser.companyReg || '',
+      companyAddress1: currentUser.companyAddress1 || '',
+      companyAddress2: currentUser.companyAddress2 || ''
+  });
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -873,7 +1045,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
           companyAddress1: mappedUser.companyAddress1,
           companyAddress2: mappedUser.companyAddress2,
           logoUrl: mappedUser.logoUrl || '',
-          logoAlign: mappedUser.logoAlign || 'left'
+          logoAlign: mappedUser.logoAlign || 'left',
+          salesman: mappedUser.salesman
         });
         setSaved(true); setTimeout(() => setSaved(false), 3000);
       } else {
@@ -888,7 +1061,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
         companyAddress1: formData.companyAddress1,
         companyAddress2: formData.companyAddress2,
         logoUrl: formData.logoUrl || '',
-        logoAlign: formData.logoAlign || 'left'
+        logoAlign: formData.logoAlign || 'left',
+        salesman: formData.salesman
       });
       setSaved(true); setTimeout(() => setSaved(false), 3000);
     }
@@ -903,7 +1077,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
         </div>
         <div>
           <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname || 'New User'}</h2>
-          <p className="text-xs text-slate-500 font-medium">{formData.role} • DIK-APPS</p>
+          <p className="text-xs text-slate-500 font-medium">DIK-APPS STORE USER</p>
         </div>
       </div>
 
@@ -960,22 +1134,19 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Role / Position DIHAPUS, Grid disesuaikan */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
               <input type="text" value={formData.fullname} onChange={e => setFormData({...formData, fullname: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" required />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Salesman / Attendant Name</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Salesman / Attendant</label>
               <input type="text" value={formData.salesman} onChange={e => setFormData({...formData, salesman: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number (+60)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number</label>
               <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" required />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Role / Position</label>
-              <input type="text" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" />
             </div>
           </div>
 
@@ -1037,7 +1208,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
           fullname: data.user.name || data.user.fullname || fullName || '',
           email: data.user.email || email,
           phone: data.user.phone || phone,
-          companyName: data.user.company_name || companyName || '',
+          companyName: data.user.company_name || companyName || '', // Pastikan data toko kosong untuk register
           companyReg: data.user.company_reg || companyReg || '',
           companyAddress1: data.user.company_address1 || address1 || '',
           companyAddress2: data.user.company_address2 || address2 || '',
@@ -1050,10 +1221,11 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
         alert(data.message || "Authentication failed");
       }
     } catch {
+      // Data dummy pendaftaran saat terjadi error fetch, dipastikan state companyName dkk kosong
       onLogin({ 
         id: Date.now().toString(),
         fullname: fullName || 'Admin DIK-APPS', email, phone, 
-        companyName, companyReg, companyAddress1: address1, companyAddress2: address2, salesman: fullName, logoUrl: '', logoAlign: 'left'
+        companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '', salesman: fullName, logoUrl: '', logoAlign: 'left'
       });
     }
     setLoading(false);
