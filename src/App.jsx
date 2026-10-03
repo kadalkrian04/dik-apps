@@ -313,7 +313,7 @@ function ProductsView({ products, setProducts, currentUser }) {
             <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-slate-800">Product Masterlist</h2>
-                    <p className="text-xs text-slate-500">Kelola daftar barang agar lebih cepat saat membuat invoice.</p>
+                    <p className="text-xs text-slate-500">Kelola daftar barang agar lebih cepat saat membuat invois.</p>
                 </div>
             </div>
 
@@ -346,7 +346,7 @@ function ProductsView({ products, setProducts, currentUser }) {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {products.length === 0 ? (
-                                <tr><td colSpan="3" className="text-center py-6 text-slate-500 text-xs">Belum ada produk. Tambahkan produk untuk mengaktifkan fitur auto-fill!</td></tr>
+                                <tr><td colSpan="3" className="text-center py-6 text-slate-500 text-xs">Belum ada produk. Tambahkan produk untuk mengaktifkan ciri isi-auto (auto-fill)!</td></tr>
                             ) : (
                                 products.map(p => (
                                     <tr key={p.id} className="hover:bg-slate-50">
@@ -374,6 +374,7 @@ function SalesWorkspace({
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
 
+  // FIX: Penambahan sistem amaran bagi menangani duplicate Document No
   const handleSaveToDB = async () => {
     setIsSaving(true);
     try {
@@ -389,14 +390,20 @@ function SalesWorkspace({
         })
       });
       const data = await res.json();
+      
       if(data.success) {
-        alert("Invoice successfully saved to database!");
+        alert("Invois berjaya disimpan ke pangkalan data!");
         if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
       } else {
-        alert("Failed to save: " + (data.message || "Unknown error"));
+        // Semak ralat "invoices_doc_no_key" jika Nombor Invois telah digunakan
+        if (data.message && data.message.includes('invoices_doc_no_key')) {
+           alert(`Ralat Menyimpan: Nombor Invois (Document No) "${invoiceData.docNo}" telah wujud di dalam rekod pangkalan data. Sila tukar kepada nombor lain sebelum menyimpan semula.`);
+        } else {
+           alert("Gagal menyimpan: " + (data.message || "Ralat tidak diketahui"));
+        }
       }
     } catch (err) {
-      alert("Network error: " + err.message);
+      alert("Ralat Rangkaian: " + err.message);
     }
     setIsSaving(false);
   };
@@ -415,7 +422,7 @@ function SalesWorkspace({
         
         <div className="flex flex-wrap gap-2">
           <button onClick={handleSaveToDB} disabled={isSaving} className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
-            {isSaving ? 'Saving...' : 'Save to DB'}
+            {isSaving ? 'Menyimpan...' : 'Save to DB'}
           </button>
           <button onClick={handlePrint} className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
             <Printer size={16} /> Print / Export PDF
@@ -622,7 +629,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
              <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
-             {/* Textarea diperbesar rows="7" agar tulisan list tidak tertutup */}
              <textarea rows="7" value={invoiceData.remarks} onChange={(e) => handleDataChange('remarks', e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs md:text-sm outline-none resize-none" />
           </div>
           <div className="w-full lg:w-[350px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 space-y-2">
@@ -670,6 +676,7 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
 }
 
 function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords, currentUser }) {
+  // Peningkatan saiz tulisan (Font Size) untuk semua paparan cetakan (Preview)
   return (
     <div className="w-[794px] min-h-[1123px] print:w-[210mm] print:min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
@@ -685,17 +692,17 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
              <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
           )}
           <div>
-            <h1 className="text-[12px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
-            <p className="text-[10px]">{invoiceData.companyReg}</p>
-            <p className="text-[10px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
+            <h1 className="text-[14px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
+            <p className="text-[12px]">{invoiceData.companyReg}</p>
+            <p className="text-[12px] whitespace-pre-line">{invoiceData.companyAddress1}<br/>{invoiceData.companyAddress2}</p>
           </div>
         </div>
-        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[13px] uppercase tracking-wide">
+        <div className="border-[1.5px] border-black px-10 py-1.5 font-bold text-[15px] uppercase tracking-wide">
           {invoiceData.docTitle}
         </div>
       </div>
 
-      <div className="flex justify-between mb-4 text-[10px]">
+      <div className="flex justify-between mb-4 text-[12px]">
         <div className="w-[58%] pr-2 space-y-[2px]">
           <div className="flex">
             <span className="w-16 font-bold uppercase">NAME:</span>
@@ -737,8 +744,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* TABEL BARANG */}
-      <table className="w-full text-[11px] mb-8 border-collapse mt-4">
+      <table className="w-full text-[13px] mb-8 border-collapse mt-4">
         <thead>
           <tr className="border-y-2 border-black">
             <th className="py-1.6 text-left font-bold w-[4%]">Item</th>
@@ -758,10 +764,10 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
               <td className="py-2 align-top">{index + 1}</td>
               <td className="py-2 align-top">
                 <div className="font-semibold">{item.desc}</div>
-                {item.imei && item.imei !== '-' && <div className="text-[10px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
+                {item.imei && item.imei !== '-' && <div className="text-[11px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
               </td>
               <td className="py-2 align-top text-center font-semibold">{item.status}</td>
-              <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
+              <td className="py-2 align-top text-center text-[11px]">{item.warranty || '-'}</td>
               <td className="py-2 align-top text-center">{item.qty}</td>
               <td className="py-2 align-top text-center">{item.uom}</td>
               <td className="py-2 align-top text-right">{formatCurrency(item.price)}</td>
@@ -773,14 +779,13 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </tbody>
       </table>
 
-      <div className="flex justify-between text-[10px] mt-1 mb-8 border-t-[1.5px] border-black pt-2">
+      <div className="flex justify-between text-[12px] mt-1 mb-8 border-t-[1.5px] border-black pt-2">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
             <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
-          {/* Class whitespace-pre-wrap agar garis baru (enter) terbaca saat render HTML ke PDF */}
-          <p className="text-[9px] leading-tight text-gray-700 whitespace-pre-wrap">{invoiceData.remarks}</p>
+          <p className="text-[11px] leading-tight text-gray-700 whitespace-pre-wrap">{invoiceData.remarks}</p>
         </div>
         
         <div className="w-[35%] space-y-0.5">
@@ -796,7 +801,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <span>Round cent:</span>
             <span className="w-20 text-right">{formatCurrency(invoiceData.roundCent)}</span>
           </div>
-          <div className="border-t-[1.5px] border-black border-b-[2px] border-black py-1 mt-1 flex justify-between font-bold text-[11px]">
+          <div className="border-t-[1.5px] border-black border-b-[2px] border-black py-1 mt-1 flex justify-between font-bold text-[13px]">
             <span>Total Amount:</span>
             <span className="w-24 text-right flex justify-between">
               <span>MYR</span>
@@ -806,7 +811,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
+      <div className="pt-24 flex justify-between text-[12px] w-full pb-4">
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.customerName}</div>
         </div>
@@ -828,7 +833,6 @@ function DashboardView({ setActiveTab, currentUser }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TAMBAHAN FIX: { cache: 'no-store' } agar langsung narik data baru dari database tiap buka halaman
     fetch('/api/invoices', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
@@ -939,7 +943,6 @@ function ReportsView({ currentUser }) {
   const [timeFilter, setTimeFilter] = useState('1M');
   
   useEffect(() => {
-    // TAMBAHAN FIX CACHE
     fetch('/api/invoices', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
@@ -1077,7 +1080,6 @@ function ReportPrintPreview({ currentUser }) {
     const [salesData, setSalesData] = useState([]);
   
     useEffect(() => {
-      // TAMBAHAN FIX CACHE
       fetch('/api/invoices', { cache: 'no-store' })
         .then(res => res.json())
         .then(data => {
