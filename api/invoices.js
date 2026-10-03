@@ -17,18 +17,26 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { docNo, customerName, totalAmount, items, userId } = req.body;
+      // Ambil nilai printStatus dan targetShop dari frontend
+      const { docNo, customerName, totalAmount, items, userId, printStatus = 'none', targetShop = '' } = req.body;
       
+      // Kemas kini query untuk menguruskan data duplicate (ON CONFLICT)
       const query = `
-        INSERT INTO invoices (doc_no, customer_name, total_amount, items, user_id) 
-        VALUES ($1, $2, $3, $4, $5) RETURNING *;
+        INSERT INTO invoices (doc_no, customer_name, total_amount, items, user_id, print_status, target_shop) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        ON CONFLICT (doc_no) 
+        DO UPDATE SET 
+            customer_name = EXCLUDED.customer_name,
+            total_amount = EXCLUDED.total_amount,
+            items = EXCLUDED.items,
+            print_status = EXCLUDED.print_status,
+            target_shop = EXCLUDED.target_shop
+        RETURNING *;
       `;
       
-      // Mencegah error "out of range for type integer" dengan casting ke string/null
       let parsedUserId = null;
       if (userId) {
           const num = Number(userId);
-          // Jika aman masuk integer postgres, kita parse. Kalau tidak, set null.
           if (!isNaN(num) && num < 2147483647) {
               parsedUserId = num;
           }
@@ -39,7 +47,9 @@ export default async function handler(req, res) {
         customerName || 'CASH CUSTOMER',
         totalAmount || 0,
         JSON.stringify(items || []),
-        parsedUserId
+        parsedUserId,
+        printStatus,
+        targetShop
       ];
 
       const result = await pool.query(query, values);

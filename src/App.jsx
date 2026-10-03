@@ -4,7 +4,7 @@ import {
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
   LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon,
-  Package, Save
+  Package, Save, Send
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -151,13 +151,6 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
     return result.replace(/\s+/g, ' ').trim() + ' Only';
   };
 
-  const handlePrintInvoice = () => {
-    if (invoiceData.docNo) {
-      localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
-    }
-    window.print();
-  };
-
   const handleLogout = () => {
     localStorage.clear();
     window.location.reload(); 
@@ -235,7 +228,6 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
             invoiceData={invoiceData} setInvoiceData={setInvoiceData}
             items={items} setItems={setItems} products={products}
             subTotal={subTotal} totalAmount={totalAmount}
-            handlePrint={handlePrintInvoice}
             calculateItemAmount={calculateItemAmount}
             formatCurrency={formatCurrency}
             numberToWords={numberToWords}
@@ -371,14 +363,19 @@ function ProductsView({ products, setProducts, currentUser }) {
 
 function SalesWorkspace({ 
   invoiceData, setInvoiceData, items, setItems, products,
-  subTotal, totalAmount, handlePrint, 
+  subTotal, totalAmount, 
   calculateItemAmount, formatCurrency, numberToWords, currentUser 
 }) {
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
+  const [targetShop, setTargetShop] = useState('CABANG_A');
 
-  // FIX: Penambahan sistem amaran bagi menangani duplicate Document No
-  const handleSaveToDB = async () => {
+  const handlePrintLocal = () => {
+    if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
+    window.print();
+  };
+
+  const handleSaveToDB = async (printStatus = 'none') => {
     setIsSaving(true);
     try {
       const res = await fetch('/api/invoices', {
@@ -389,21 +386,22 @@ function SalesWorkspace({
           customerName: invoiceData.customerName,
           totalAmount: totalAmount,
           items: items,
-          userId: currentUser.id
+          userId: currentUser.id,
+          printStatus: printStatus, 
+          targetShop: printStatus === 'pending' ? targetShop : '' 
         })
       });
       const data = await res.json();
       
       if(data.success) {
-        alert("Invois berjaya disimpan ke pangkalan data!");
+        if (printStatus === 'pending') {
+            alert(`Berjaya! Arahan print telah dihantar ke antrean ${targetShop}. PC Toko akan mencetaknya sebentar lagi.`);
+        } else {
+            alert("Invois berjaya disimpan ke pangkalan data!");
+        }
         if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
       } else {
-        // Semak ralat "invoices_doc_no_key" jika Nombor Invois telah digunakan
-        if (data.message && data.message.includes('invoices_doc_no_key')) {
-           alert(`Ralat Menyimpan: Nombor Invois (Document No) "${invoiceData.docNo}" telah wujud di dalam rekod pangkalan data. Sila tukar kepada nombor lain sebelum menyimpan semula.`);
-        } else {
-           alert("Gagal menyimpan: " + (data.message || "Ralat tidak diketahui"));
-        }
+        alert("Gagal: " + (data.message || "Ralat tidak diketahui"));
       }
     } catch (err) {
       alert("Ralat Rangkaian: " + err.message);
@@ -413,8 +411,8 @@ function SalesWorkspace({
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3">
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3">
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 flex-shrink-0">
            <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
              <FileEdit size={16}/> Edit Form
            </button>
@@ -423,12 +421,28 @@ function SalesWorkspace({
            </button>
         </div>
         
-        <div className="flex flex-wrap gap-2">
-          <button onClick={handleSaveToDB} disabled={isSaving} className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
-            {isSaving ? 'Menyimpan...' : 'Save to DB'}
+        <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center w-full lg:w-auto">
+          <div className="flex flex-1 sm:flex-initial items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden">
+             <select 
+               value={targetShop} 
+               onChange={(e) => setTargetShop(e.target.value)} 
+               className="bg-transparent text-indigo-800 text-xs font-bold px-2 py-2.5 outline-none cursor-pointer border-r border-indigo-200"
+             >
+                <option value="CABANG_A">CABANG A</option>
+                <option value="CABANG_B">CABANG B</option>
+                <option value="CABANG_C">CABANG C</option>
+                <option value="CABANG_D">CABANG D</option>
+             </select>
+             <button onClick={() => handleSaveToDB('pending')} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50">
+               <Send size={14} /> Print to Shop
+             </button>
+          </div>
+
+          <button onClick={() => handleSaveToDB('none')} disabled={isSaving} className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+            {isSaving ? 'Menyimpan...' : 'Save Data'}
           </button>
-          <button onClick={handlePrint} className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
-            <Printer size={16} /> Print / Export PDF
+          <button onClick={handlePrintLocal} className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
+            <Printer size={16} /> Print (Lokal)
           </button>
         </div>
       </div>
@@ -679,7 +693,6 @@ function InputGroup({ label, value, onChange, type = "text", align = "left", tex
 }
 
 function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, subTotal, totalAmount, numberToWords, currentUser }) {
-  // Peningkatan saiz tulisan (Font Size) untuk semua paparan cetakan (Preview)
   return (
     <div className="w-[794px] min-h-[1123px] print:w-[210mm] print:min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
@@ -750,9 +763,9 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       <table className="w-full text-[13px] mb-8 border-collapse mt-4">
         <thead>
           <tr className="border-y-2 border-black">
-            <th className="py-1.6 text-left font-bold w-[4%]">Item</th>
-            <th className="py-1.6 text-left font-bold w-[30%]">Description</th>
-            <th className="py-1.6 text-center font-bold w-[10%]">Status</th>
+            <th className="py-1.6 text-left font-bold w-[5%]">Item</th>
+            <th className="py-1.6 text-left font-bold w-[35%]">Description</th>
+            <th className="py-1.6 text-center font-bold w-[6%]">Status</th>
             <th className="py-1.6 text-center font-bold w-[16%]">Warranty</th>
             <th className="py-1.6 text-center font-bold w-[6%]">Quantity</th>
             <th className="py-1.6 text-center font-bold w-[6%]">Uom</th>
