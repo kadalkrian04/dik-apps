@@ -15,7 +15,6 @@ export default async function handler(req, res) {
       
       if (!userId) return res.status(400).json({ error: 'User ID wajib diisi' });
 
-      // FIX: Tukar "ORDER BY created_at ASC" kepada "ORDER BY id ASC"
       const invQuery = `
         SELECT * FROM invoices 
         WHERE print_status = 'pending' AND user_id::text = $1 AND target_shop = $2 
@@ -28,16 +27,21 @@ export default async function handler(req, res) {
       
       const invoice = invResult.rows[0];
 
+      // Tarik data profil toko (termasuk logo)
       const userQuery = `SELECT * FROM users WHERE id::text = $1`;
       const userResult = await pool.query(userQuery, [userId]);
       const user = userResult.rows[0] || {};
 
+      // Gabungkan data invoice dengan data profil toko
       const dataToPrint = {
           ...invoice,
           company_name: user.company_name || 'NAMA TOKO BELUM DISET',
           company_reg: user.company_reg || '',
           company_address1: user.company_address1 || '',
           company_address2: user.company_address2 || '',
+          logo_url: user.logo_url || '',
+          logo_align: user.logo_align || 'left',
+          salesman: user.salesman || ''
       };
 
       return res.status(200).json({ success: true, data: [dataToPrint] });
