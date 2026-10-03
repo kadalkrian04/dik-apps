@@ -86,12 +86,12 @@ export default function CashSalesApp() {
     pageInfo: 'Page 1 of 1',
     
     // DEFAULT REMARKS BARU
-    remarks: `warranty coverage
-Waranti hanya meliputi kerosakan teknikal (hardware).
-Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
-Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
-Battery Health tidak termasuk dalam waranti.
-Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.
+    remarks: `Warranty Coverage
+* Waranti hanya meliputi kerosakan teknikal (hardware).
+* Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
+* Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
+* Battery Health tidak termasuk dalam waranti.
+* Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.
 Goods sold are strictly non-refundable. Warranty claim requires this official receipt.`,
     discountTotal: 0,
     roundCent: 0,
@@ -808,11 +808,11 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <div className="pt-24 flex justify-between text-[10px] w-full pb-4">
         <div className="w-[42%]">
-          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.companyName}</div>
+          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase"></div>
         </div>
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
-            <p className="font-bold">Company Chop Signature</p>
+            <p className="font-bold">Company Cop Signature</p>
             <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
