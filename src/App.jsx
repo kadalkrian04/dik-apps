@@ -35,7 +35,7 @@ export default function CashSalesApp() {
   // Ambil Data Produk khusus milik User ini
   useEffect(() => {
     if (isAuthenticated && currentUser?.id) {
-      fetch(`/api/products?userId=${currentUser.id}`)
+      fetch(`/api/products?userId=${currentUser.id}`, { cache: 'no-store' })
         .then(res => res.json())
         .then(data => {
             if (data.success && Array.isArray(data.products)) {
@@ -79,13 +79,19 @@ export default function CashSalesApp() {
     customerGst: '',
     paymentMethod: 'CASH',
     
-    docTitle: 'CASH SALES',
+    docTitle: 'INVOICES',
     docNo: localStorage.getItem('dik_last_doc_no') || '',
     docDate: getTodayDate(),
     salesman: currentUser.salesman || currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
-    remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
+    // DEFAULT REMARKS BARU
+    remarks: `warranty coverage
+* Waranti hanya meliputi kerosakan teknikal (hardware).
+* Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
+* Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
+* Battery Health tidak termasuk dalam waranti.
+* Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.`,
     discountTotal: 0,
     roundCent: 0,
   });
@@ -447,7 +453,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
     setItems(items.map(i => {
         if (i.id === id) {
             const updatedItem = { ...i, [field]: value };
-            // Fitur Auto-fill Harga berdasarkan pilihan barang
             if (field === 'desc') {
                 const matchedProduct = products.find(p => p.name.toLowerCase() === value.toLowerCase());
                 if (matchedProduct) {
@@ -616,7 +621,8 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
              <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
-             <textarea rows="3" value={invoiceData.remarks} onChange={(e) => handleDataChange('remarks', e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs md:text-sm outline-none resize-none" />
+             {/* Textarea diperbesar rows="7" agar tulisan list tidak tertutup */}
+             <textarea rows="7" value={invoiceData.remarks} onChange={(e) => handleDataChange('remarks', e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs md:text-sm outline-none resize-none" />
           </div>
           <div className="w-full lg:w-[350px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 space-y-2">
              <div className="flex justify-between items-center text-xs md:text-sm font-medium">
@@ -772,7 +778,8 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
-          <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
+          {/* Class whitespace-pre-wrap agar garis baru (enter) terbaca saat render HTML ke PDF */}
+          <p className="text-[9px] leading-tight text-gray-700 whitespace-pre-wrap">{invoiceData.remarks}</p>
         </div>
         
         <div className="w-[35%] space-y-0.5">
@@ -820,7 +827,8 @@ function DashboardView({ setActiveTab, currentUser }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/invoices')
+    // TAMBAHAN FIX: { cache: 'no-store' } agar langsung narik data baru dari database tiap buka halaman
+    fetch('/api/invoices', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {
@@ -930,7 +938,8 @@ function ReportsView({ currentUser }) {
   const [timeFilter, setTimeFilter] = useState('1M');
   
   useEffect(() => {
-    fetch('/api/invoices')
+    // TAMBAHAN FIX CACHE
+    fetch('/api/invoices', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {
@@ -1067,7 +1076,8 @@ function ReportPrintPreview({ currentUser }) {
     const [salesData, setSalesData] = useState([]);
   
     useEffect(() => {
-      fetch('/api/invoices')
+      // TAMBAHAN FIX CACHE
+      fetch('/api/invoices', { cache: 'no-store' })
         .then(res => res.json())
         .then(data => {
           if(Array.isArray(data)) {
