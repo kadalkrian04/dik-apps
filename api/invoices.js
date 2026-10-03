@@ -17,10 +17,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // Ambil nilai printStatus dan targetShop dari frontend
       const { docNo, customerName, totalAmount, items, userId, printStatus = 'none', targetShop = '' } = req.body;
       
-      // Kemas kini query untuk menguruskan data duplicate (ON CONFLICT)
       const query = `
         INSERT INTO invoices (doc_no, customer_name, total_amount, items, user_id, print_status, target_shop) 
         VALUES ($1, $2, $3, $4, $5, $6, $7) 
@@ -34,20 +32,15 @@ export default async function handler(req, res) {
         RETURNING *;
       `;
       
-      let parsedUserId = null;
-      if (userId) {
-          const num = Number(userId);
-          if (!isNaN(num) && num < 2147483647) {
-              parsedUserId = num;
-          }
-      }
+      // FIX: Langsung jadikan string, hapus batasan integer supaya ID besar bisa masuk!
+      const safeUserId = userId ? userId.toString() : null;
 
       const values = [
         docNo || 'DOC-0000',
         customerName || 'CASH CUSTOMER',
         totalAmount || 0,
         JSON.stringify(items || []),
-        parsedUserId,
+        safeUserId,
         printStatus,
         targetShop
       ];
