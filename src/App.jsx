@@ -3,7 +3,8 @@ import {
   LayoutDashboard, FileEdit, Plus, Printer, 
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
-  LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon
+  LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon,
+  Package, Save
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -28,6 +29,22 @@ export default function CashSalesApp() {
     };
   });
 
+  const [activeTab, setActiveTab] = useState('sales');
+  const [products, setProducts] = useState([]);
+
+  // Ambil Data Produk khusus milik User ini
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.id) {
+      fetch(`/api/products?userId=${currentUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.products)) {
+                setProducts(data.products);
+            }
+        }).catch(err => console.error("Gagal load produk:", err));
+    }
+  }, [isAuthenticated, currentUser]);
+
   useEffect(() => {
     localStorage.setItem('dik_auth', isAuthenticated);
     if (currentUser && currentUser.email) {
@@ -36,8 +53,6 @@ export default function CashSalesApp() {
       localStorage.removeItem('dik_user');
     }
   }, [isAuthenticated, currentUser]);
-
-  const [activeTab, setActiveTab] = useState('sales');
 
   const getTodayDate = () => {
     const d = new Date();
@@ -67,7 +82,7 @@ export default function CashSalesApp() {
     docTitle: 'CASH SALES',
     docNo: localStorage.getItem('dik_last_doc_no') || '',
     docDate: getTodayDate(),
-    salesman: currentUser.salesman || currentUser.fullname || '', // Default dari user profile atau kosong
+    salesman: currentUser.salesman || currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
     remarks: 'Goods sold are strictly non-refundable. Warranty claim requires this official receipt.',
@@ -174,7 +189,6 @@ export default function CashSalesApp() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
 
-      {/* NAVBAR */}
       <nav className="no-print bg-white border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center justify-between p-3 md:px-6">
           <div className="flex items-center gap-3">
@@ -194,6 +208,7 @@ export default function CashSalesApp() {
         <div className="flex items-center gap-1 md:gap-2 bg-slate-100 p-1 md:rounded-lg border-y md:border border-slate-200 overflow-x-auto no-scrollbar mx-0 md:mx-2">
           <TabButton icon={<LayoutDashboard size={16} />} label="Dashboard" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <TabButton icon={<FileEdit size={16} />} label="Cash Sales" isActive={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
+          <TabButton icon={<Package size={16} />} label="Products" isActive={activeTab === 'products'} onClick={() => setActiveTab('products')} />
           <TabButton icon={<BarChart3 size={16} />} label="Reports" isActive={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
           <TabButton icon={<User size={16} />} label="Profile" isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </div>
@@ -207,10 +222,11 @@ export default function CashSalesApp() {
 
       <main className="no-print flex-1 overflow-auto relative p-3 md:p-6">
         {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} />}
+        {activeTab === 'products' && <ProductsView products={products} setProducts={setProducts} currentUser={currentUser} />}
         {activeTab === 'sales' && (
           <SalesWorkspace 
             invoiceData={invoiceData} setInvoiceData={setInvoiceData}
-            items={items} setItems={setItems}
+            items={items} setItems={setItems} products={products}
             subTotal={subTotal} totalAmount={totalAmount}
             handlePrint={handlePrintInvoice}
             calculateItemAmount={calculateItemAmount}
@@ -247,8 +263,104 @@ function TabButton({ icon, label, isActive, onClick }) {
   );
 }
 
+function ProductsView({ products, setProducts, currentUser }) {
+    const [newProduct, setNewProduct] = useState({ name: '', price: '' });
+    const [loading, setLoading] = useState(false);
+
+    const handleAddProduct = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, ...newProduct })
+            });
+            const data = await res.json();
+            if(data.success) {
+                setProducts([...products, data.product]);
+                setNewProduct({ name: '', price: '' });
+            } else {
+                const fallbackProd = { id: Date.now(), name: newProduct.name, price: newProduct.price };
+                setProducts([...products, fallbackProd]);
+                setNewProduct({ name: '', price: '' });
+            }
+        } catch (err) {
+            const fallbackProd = { id: Date.now(), name: newProduct.name, price: newProduct.price };
+            setProducts([...products, fallbackProd]);
+            setNewProduct({ name: '', price: '' });
+        }
+        setLoading(false);
+    };
+
+    const handleDelete = async (id) => {
+        if(!window.confirm("Hapus produk ini dari daftar?")) return;
+        setProducts(products.filter(p => p.id !== id));
+        try {
+            await fetch(`/api/products?id=${id}&userId=${currentUser.id}`, { method: 'DELETE' });
+        } catch(e) { console.log("Simulasi hapus lokal") }
+    };
+
+    return (
+        <div className="max-w-5xl mx-auto space-y-6">
+            <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-800">Product Masterlist</h2>
+                    <p className="text-xs text-slate-500">Kelola daftar barang agar lebih cepat saat membuat invoice.</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm h-fit">
+                    <h3 className="font-bold text-sm mb-4 border-b pb-2">Add New Product</h3>
+                    <form onSubmit={handleAddProduct} className="space-y-4">
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Product Name</label>
+                            <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none font-medium" placeholder="e.g. iPhone 15 Pro Max" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Default Price (MYR)</label>
+                            <input type="number" step="0.01" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none font-medium" placeholder="4500.00" />
+                        </div>
+                        <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 shadow-sm">
+                            <Save size={16} /> {loading ? 'Saving...' : 'Save Product'}
+                        </button>
+                    </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
+                            <tr>
+                                <th className="px-4 py-3">Product Name</th>
+                                <th className="px-4 py-3 text-right">Price (MYR)</th>
+                                <th className="px-4 py-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {products.length === 0 ? (
+                                <tr><td colSpan="3" className="text-center py-6 text-slate-500 text-xs">Belum ada produk. Tambahkan produk untuk mengaktifkan fitur auto-fill!</td></tr>
+                            ) : (
+                                products.map(p => (
+                                    <tr key={p.id} className="hover:bg-slate-50">
+                                        <td className="px-4 py-3 font-medium text-slate-800">{p.name}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-indigo-700">{parseFloat(p.price).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function SalesWorkspace({ 
-  invoiceData, setInvoiceData, items, setItems, 
+  invoiceData, setInvoiceData, items, setItems, products,
   subTotal, totalAmount, handlePrint, 
   calculateItemAmount, formatCurrency, numberToWords, currentUser 
 }) {
@@ -308,7 +420,8 @@ function SalesWorkspace({
         {workspaceMode === 'form' ? (
           <SalesForm 
             invoiceData={invoiceData} setInvoiceData={setInvoiceData}
-            items={items} setItems={setItems} subTotal={subTotal} totalAmount={totalAmount}
+            items={items} setItems={setItems} products={products}
+            subTotal={subTotal} totalAmount={totalAmount}
           />
         ) : (
           <div className="w-full bg-slate-200 p-2 md:p-8 rounded-xl shadow-inner overflow-x-auto">
@@ -327,14 +440,32 @@ function SalesWorkspace({
   );
 }
 
-function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, totalAmount }) {
+function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, totalAmount, products }) {
   const handleDataChange = (field, value) => setInvoiceData({ ...invoiceData, [field]: value });
-  const handleItemChange = (id, field, value) => setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
+  
+  const handleItemChange = (id, field, value) => {
+    setItems(items.map(i => {
+        if (i.id === id) {
+            const updatedItem = { ...i, [field]: value };
+            // Fitur Auto-fill Harga berdasarkan pilihan barang
+            if (field === 'desc') {
+                const matchedProduct = products.find(p => p.name.toLowerCase() === value.toLowerCase());
+                if (matchedProduct) {
+                    updatedItem.price = matchedProduct.price; 
+                }
+            }
+            return updatedItem;
+        }
+        return i;
+    }));
+  };
+
   const addItem = () => setItems([...items, { id: Date.now(), desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }]);
   const removeItem = (id) => { if (items.length > 1) setItems(items.filter(i => i.id !== id)); };
 
   return (
     <div className="space-y-4 md:space-y-6">
+      
       <FormSection title="1. DISPLAY SETTINGS">
         <div className="flex flex-col sm:flex-row gap-6 items-center">
            <div className="flex-shrink-0">
@@ -383,7 +514,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
               <InputGroup label="Phone No." value={invoiceData.customerPhone} onChange={(e) => handleDataChange('customerPhone', e.target.value)} />
               <div>
                 <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Payment Method</label>
-                <select value={invoiceData.paymentMethod} onChange={(e) => handleDataChange('paymentMethod', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium">
+                <select value={invoiceData.paymentMethod} onChange={(e) => handleDataChange('paymentMethod', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none">
                   <option>CASH</option><option>CREDIT CARD</option><option>DEBIT CARD</option><option>BANK TRANSFER</option><option>DUITNOW QR</option>
                 </select>
               </div>
@@ -414,6 +545,11 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
           </button>
       }>
         <div className="space-y-4">
+          
+          <datalist id="products-datalist">
+              {products.map((p, idx) => <option key={idx} value={p.name} />)}
+          </datalist>
+
           {items.map((item, index) => (
             <div key={item.id} className="border border-slate-200 bg-slate-50 p-3 md:p-4 rounded-xl relative group">
               <div className="flex justify-between items-center mb-3">
@@ -425,15 +561,23 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
               
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                  <div className="md:col-span-5">
-                    <InputGroup label="Description" value={item.desc} onChange={(e) => handleItemChange(item.id, 'desc', e.target.value)} />
+                  <div className="md:col-span-5 relative">
+                    <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Description</label>
+                    <input 
+                       list="products-datalist" 
+                       type="text" 
+                       value={item.desc} 
+                       onChange={(e) => handleItemChange(item.id, 'desc', e.target.value)} 
+                       placeholder="Select or type product..."
+                       className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none" 
+                    />
                   </div>
                   <div className="md:col-span-4">
                     <InputGroup label="IMEI / Serial Number" value={item.imei} onChange={(e) => handleItemChange(item.id, 'imei', e.target.value)} />
                   </div>
                   <div className="md:col-span-3">
                     <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
-                    <select value={item.status} onChange={(e) => handleItemChange(item.id, 'status', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium">
+                    <select value={item.status} onChange={(e) => handleItemChange(item.id, 'status', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm font-medium outline-none">
                       <option value="NEW">NEW</option>
                       <option value="SECOND/USED">SECOND/USED</option>
                       <option value="REFURBISHED">REFURBISHED</option>
@@ -450,7 +594,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                    </div>
                    <div className="md:col-span-2">
                       <label className="block text-[10px] md:text-[11px] font-bold text-slate-500 uppercase mb-1">UOM</label>
-                      <select value={item.uom} onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm">
+                      <select value={item.uom} onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs md:text-sm outline-none">
                         <option value="UNIT">UNIT</option><option value="PCS">PCS</option><option value="SET">SET</option>
                         <option value="LGT">LGT</option><option value="BOX">BOX</option>
                       </select>
@@ -588,33 +732,34 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <table className="w-full text-[11px] mb-4 border-collapse">
         <thead>
-          <tr className="border-y-2 border-black">
-            <th className="py-1.5 text-left font-bold w-[4%]">Item</th>
-            <th className="py-1.5 text-left font-bold w-[30%]">Description</th>
-            <th className="py-1.5 text-center font-bold w-[10%]">Status</th>
-            <th className="py-1.5 text-center font-bold w-[16%]">Warranty</th>
-            <th className="py-1.5 text-center font-bold w-[6%]">Quantity</th>
-            <th className="py-1.5 text-center font-bold w-[6%]">Uom</th>
-            <th className="py-1.5 text-right font-bold w-[10%]">Unit Price</th>
-            <th className="py-1.5 text-right font-bold w-[8%]">Discount</th>
-            <th className="py-1.5 text-right font-bold w-[10%]">Amount</th>
+          <tr className="border-y-[1.6px] border-black">
+            <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
+            <th className="py-1 text-center font-bold w-[9%]">Status</th>
+            <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
+            <th className="py-1 text-center font-bold w-[12%]">QuantityUom</th>
+            <th className="py-1 text-right font-bold w-[8%]">Unit Price</th>
+            <th className="py-1 text-right font-bold w-[7%]">Discount</th>
+            <th className="py-1 text-right font-bold w-[9%]">Amount</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="border-b-[1.6px] border-black">
           {items.map((item, index) => (
-            <tr key={item.id}>
-              <td className="py-2 align-top">{index + 1}</td>
-              <td className="py-2 align-top">
-                <div className="font-semibold">{item.desc}</div>
-                {item.imei && item.imei !== '-' && <div className="text-[10px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
+            <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
+              <td className="py-1.6 align-top pr-1">
+                <div className="flex gap-2">
+                  <span className="w-3">{index + 1}</span>
+                  <div>
+                    <div className="font-bold leading-tight">{item.desc || '-'}</div>
+                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-black-700 font-medium">SN/IMEI: {item.imei}</div>}
+                  </div>
+                </div>
               </td>
-              <td className="py-2 align-top text-center font-semibold">{item.status}</td>
-              <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
-              <td className="py-2 align-top text-center">{item.qty}</td>
-              <td className="py-2 align-top text-center">{item.uom}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(item.price)}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(item.discount)}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
+              <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
+              <td className="py-1.5 align-top text-center text-[9px] text-black-700 px-1">{item.warranty || '-'}</td>
+              <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
           <tr style={{ height: '10px' }}><td colSpan="7"></td></tr>
@@ -624,7 +769,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       <div className="flex justify-between text-[10px] mt-1 mb-8 border-t-[1.5px] border-black pt-2">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
-            <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;{numberToWords(totalAmount)}</span>
+            <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
           <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
@@ -660,7 +805,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
+            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
@@ -779,11 +924,10 @@ function StatCard({ title, value, sub, icon, color }) {
   );
 }
 
-// VIEW LAPORAN YANG TELAH DIPERBAIKI (Filter Waktu & Ekspor Profesional)
 function ReportsView({ currentUser }) {
   const [salesData, setSalesData] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
-  const [timeFilter, setTimeFilter] = useState('1M'); // '1M', '3M', '6M', 'ALL'
+  const [timeFilter, setTimeFilter] = useState('1M');
   
   useEffect(() => {
     fetch('/api/invoices')
@@ -797,14 +941,11 @@ function ReportsView({ currentUser }) {
       .catch(() => {});
   }, [currentUser.id]);
 
-  // Logic untuk filter berdasarkan waktu
   useEffect(() => {
     if (salesData.length === 0) return;
-    
     const now = new Date();
     const filtered = salesData.filter(sale => {
       if (timeFilter === 'ALL') return true;
-      
       const saleDate = new Date(sale.created_at || Date.now());
       const diffTime = Math.abs(now - saleDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -814,7 +955,6 @@ function ReportsView({ currentUser }) {
       if (timeFilter === '6M') return diffDays <= 180;
       return true;
     });
-    
     setFilteredSales(filtered);
   }, [salesData, timeFilter]);
 
@@ -823,7 +963,6 @@ function ReportsView({ currentUser }) {
 
   const exportToCSV = () => {
     if (filteredSales.length === 0) return alert("No data to export.");
-    
     const headers = ["Date", "Invoice No", "Customer Name", "Total Amount (MYR)"];
     const csvContent = [
       headers.join(","),
@@ -846,9 +985,7 @@ function ReportsView({ currentUser }) {
     document.body.removeChild(link);
   };
 
-  const exportToPDF = () => {
-    window.print(); // Memanfaatkan fitur browser print untuk menghasilkan PDF
-  };
+  const exportToPDF = () => { window.print(); };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -926,7 +1063,6 @@ function ReportsView({ currentUser }) {
   );
 }
 
-// Tampilan khusus Print untuk Laporan
 function ReportPrintPreview({ currentUser }) {
     const [salesData, setSalesData] = useState([]);
   
@@ -1133,7 +1269,6 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
             </div>
           </div>
 
-          {/* Role / Position DIHAPUS, Grid disesuaikan */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
@@ -1207,7 +1342,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
           fullname: data.user.name || data.user.fullname || fullName || '',
           email: data.user.email || email,
           phone: data.user.phone || phone,
-          companyName: data.user.company_name || companyName || '', // Pastikan data toko kosong untuk register
+          companyName: data.user.company_name || companyName || '',
           companyReg: data.user.company_reg || companyReg || '',
           companyAddress1: data.user.company_address1 || address1 || '',
           companyAddress2: data.user.company_address2 || address2 || '',
@@ -1220,7 +1355,6 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
         alert(data.message || "Authentication failed");
       }
     } catch {
-      // Data dummy pendaftaran saat terjadi error fetch, dipastikan state companyName dkk kosong
       onLogin({ 
         id: Date.now().toString(),
         fullname: fullName || 'Admin DIK-APPS', email, phone, 
