@@ -4,7 +4,7 @@ import {
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
   LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon,
-  Package, Save, Send
+  Package, Save, Send, RefreshCw
 } from 'lucide-react';
 
 export default function CashSalesApp() {
@@ -172,6 +172,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
       
+      {/* Menggunakan text-size-adjust untuk mengatasi zoom input pada iOS/iPhone */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -184,6 +185,9 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
+        }
+        @media screen and (max-width: 768px) {
+          input, select, textarea { font-size: 16px !important; }
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -369,13 +373,15 @@ function SalesWorkspace({
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
   const [targetShop, setTargetShop] = useState('CABANG_A');
+  const [printStatusInfo, setPrintStatusInfo] = useState('');
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   const handlePrintLocal = () => {
     if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
     window.print();
   };
 
-const handleSaveToDB = async (printStatus = 'none') => {
+  const handleSaveToDB = async (printStatus = 'none') => {
     setIsSaving(true);
     try {
       const res = await fetch('/api/invoices', {
@@ -402,6 +408,7 @@ const handleSaveToDB = async (printStatus = 'none') => {
       if(data.success) {
         if (printStatus === 'pending') {
             alert(`Berjaya! Arahan print telah dihantar ke antrean ${targetShop}. PC Toko akan mencetaknya sebentar lagi.`);
+            setPrintStatusInfo('pending');
         } else {
             alert("Invois berjaya disimpan ke pangkalan data!");
         }
@@ -415,41 +422,81 @@ const handleSaveToDB = async (printStatus = 'none') => {
     setIsSaving(false);
   };
 
+  const checkPrintStatus = async () => {
+      if (!invoiceData.docNo) return;
+      setIsCheckingStatus(true);
+      try {
+          const res = await fetch('/api/invoices', { cache: 'no-store' });
+          const data = await res.json();
+          if (Array.isArray(data)) {
+              const currentInv = data.find(i => i.doc_no === invoiceData.docNo && String(i.user_id) === String(currentUser.id));
+              if (currentInv) {
+                  setPrintStatusInfo(currentInv.print_status);
+              } else {
+                  setPrintStatusInfo('none');
+              }
+          }
+      } catch (e) {
+          console.error("Gagal menyemak status print", e);
+      }
+      setTimeout(() => setIsCheckingStatus(false), 1000);
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
-      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-3">
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 flex-shrink-0">
-           <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
-             <FileEdit size={16}/> Edit Form
-           </button>
-           <button onClick={() => setWorkspaceMode('preview')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'preview' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
-             <Eye size={16}/> A4 Preview
-           </button>
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
+        
+        {/* Bahagian Butang Paparan dan Status */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 flex-shrink-0">
+               <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
+                 <FileEdit size={16}/> Edit Form
+               </button>
+               <button onClick={() => setWorkspaceMode('preview')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'preview' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
+                 <Eye size={16}/> A4 Preview
+               </button>
+            </div>
+            
+            {/* Butang Check Status Print */}
+            <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-lg px-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                   <span>Print Status:</span>
+                   {printStatusInfo === 'pending' ? <span className="text-amber-500 font-bold bg-amber-50 px-2 py-0.5 rounded">Pending...</span> : 
+                    printStatusInfo === 'printed' ? <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1"><CheckCircle size={12}/> Berhasil</span> : 
+                    <span className="text-slate-400">-</span>}
+                </div>
+                <button onClick={checkPrintStatus} disabled={isCheckingStatus || !invoiceData.docNo} className="text-indigo-600 hover:bg-indigo-50 p-1 rounded-md transition-colors disabled:opacity-50" title="Semak Status Cetakan">
+                    <RefreshCw size={14} className={isCheckingStatus ? "animate-spin" : ""} />
+                </button>
+            </div>
         </div>
         
-        <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center w-full lg:w-auto">
-          <div className="flex flex-1 sm:flex-initial items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden">
+        {/* Bahagian Butang Simpan dan Cetak */}
+        <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap gap-2 items-stretch sm:items-center w-full lg:w-auto">
+          <div className="flex w-full sm:w-auto items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden flex-shrink-0">
              <select 
                value={targetShop} 
                onChange={(e) => setTargetShop(e.target.value)} 
-               className="bg-transparent text-indigo-800 text-xs font-bold px-2 py-2.5 outline-none cursor-pointer border-r border-indigo-200"
+               className="bg-transparent text-indigo-800 text-xs font-bold px-2 py-2.5 outline-none cursor-pointer border-r border-indigo-200 w-1/2 sm:w-auto text-center sm:text-left"
              >
                 <option value="CABANG_A">CABANG A</option>
                 <option value="CABANG_B">CABANG B</option>
                 <option value="CABANG_C">CABANG C</option>
                 <option value="CABANG_D">CABANG D</option>
              </select>
-             <button onClick={() => handleSaveToDB('pending')} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50">
+             <button onClick={() => handleSaveToDB('pending')} disabled={isSaving} className="w-1/2 sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
                <Send size={14} /> Print to Shop
              </button>
           </div>
 
-          <button onClick={() => handleSaveToDB('none')} disabled={isSaving} className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
-            {isSaving ? 'Menyimpan...' : 'Save Data'}
-          </button>
-          <button onClick={handlePrintLocal} className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
-            <Printer size={16} /> Print (Lokal)
-          </button>
+          <div className="flex w-full sm:w-auto gap-2">
+              <button onClick={() => handleSaveToDB('none')} disabled={isSaving} className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+                {isSaving ? 'Menyimpan...' : 'Save Data'}
+              </button>
+              <button onClick={handlePrintLocal} className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
+                <Printer size={16} /> Print (Lokal)
+              </button>
+          </div>
         </div>
       </div>
 
@@ -516,14 +563,14 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                  )}
               </div>
            </div>
-           <div className="flex-1 space-y-3">
+           <div className="flex-1 space-y-3 w-full sm:w-auto">
               <div className="flex items-center gap-3">
                  <input type="checkbox" id="showLogo" checked={invoiceData.showLogo} onChange={(e) => handleDataChange('showLogo', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded" />
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
               
               {invoiceData.showLogo && (
-                <div className="flex items-center gap-3 pl-8">
+                <div className="flex items-center gap-3 sm:pl-8">
                   <label className="text-xs font-bold text-slate-600">Logo Alignment:</label>
                   <select 
                     value={invoiceData.logoAlign} 
@@ -536,7 +583,7 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                 </div>
               )}
               
-              <p className="text-xs text-slate-500 max-w-md pl-8">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
+              <p className="text-xs text-slate-500 max-w-md sm:pl-8">Toggle to show or hide the store logo on the printed invoice. <b>To change the logo, go to the Profile tab.</b></p>
            </div>
         </div>
       </FormSection>
