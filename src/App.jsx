@@ -660,7 +660,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
+            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
