@@ -375,7 +375,7 @@ function SalesWorkspace({
     window.print();
   };
 
-  const handleSaveToDB = async (printStatus = 'none') => {
+const handleSaveToDB = async (printStatus = 'none') => {
     setIsSaving(true);
     try {
       const res = await fetch('/api/invoices', {
@@ -384,6 +384,12 @@ function SalesWorkspace({
         body: JSON.stringify({
           docNo: invoiceData.docNo,
           customerName: invoiceData.customerName,
+          customerAddress: invoiceData.customerAddress,
+          customerPhone: invoiceData.customerPhone,
+          customerFax: invoiceData.customerFax,
+          customerGst: invoiceData.customerGst,
+          discountTotal: invoiceData.discountTotal || 0,
+          roundCent: invoiceData.roundCent || 0,
           totalAmount: totalAmount,
           items: items,
           userId: currentUser.id,
