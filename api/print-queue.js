@@ -10,17 +10,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // PC Toko nanya data pakai User ID akun kliennya
     if (req.method === 'GET') {
       const { userId, shop = '' } = req.query;
       
       if (!userId) return res.status(400).json({ error: 'User ID wajib diisi' });
 
-      // 1. Cari antrean print milik akun tersebut (user_id diubah ke text agar aman dari error integer)
+      // FIX: Tukar "ORDER BY created_at ASC" kepada "ORDER BY id ASC"
       const invQuery = `
         SELECT * FROM invoices 
         WHERE print_status = 'pending' AND user_id::text = $1 AND target_shop = $2 
-        ORDER BY created_at ASC 
+        ORDER BY id ASC 
         LIMIT 1;
       `;
       const invResult = await pool.query(invQuery, [userId, shop]);
@@ -29,12 +28,10 @@ export default async function handler(req, res) {
       
       const invoice = invResult.rows[0];
 
-      // 2. Cari data profil toko (nama, alamat) milik klien tersebut
       const userQuery = `SELECT * FROM users WHERE id::text = $1`;
       const userResult = await pool.query(userQuery, [userId]);
       const user = userResult.rows[0] || {};
 
-      // 3. Gabungkan data agar Script PC bisa menggambar PDF dengan benar
       const dataToPrint = {
           ...invoice,
           company_name: user.company_name || 'NAMA TOKO BELUM DISET',
