@@ -79,7 +79,7 @@ export default function CashSalesApp() {
     customerGst: '',
     paymentMethod: 'CASH',
     
-    docTitle: 'INVOICES',
+    docTitle: 'INVOICE',
     docNo: localStorage.getItem('dik_last_doc_no') || '',
     docDate: getTodayDate(),
     salesman: currentUser.salesman || currentUser.fullname || '',
@@ -87,11 +87,12 @@ export default function CashSalesApp() {
     
     // DEFAULT REMARKS BARU
     remarks: `warranty coverage
-* Waranti hanya meliputi kerosakan teknikal (hardware).
-* Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
-* Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
-* Battery Health tidak termasuk dalam waranti.
-* Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.`,
+Waranti hanya meliputi kerosakan teknikal (hardware).
+Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
+Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
+Battery Health tidak termasuk dalam waranti.
+Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.
+Goods sold are strictly non-refundable. Warranty claim requires this official receipt.`,
     discountTotal: 0,
     roundCent: 0,
   });
