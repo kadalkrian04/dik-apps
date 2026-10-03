@@ -25,10 +25,19 @@ export default async function handler(req, res) {
       if (existing.length > 0) return res.status(400).json({ success: false, message: 'Email sudah terdaftar' });
       
       const userId = id || Date.now(); 
-      // MENGGUNAKAN KOLOM 'fullname' AGAR TIDAK ERROR
+      
+      // PERUBAHAN: Set role jadi 'user' dan paksa kosongkan data company agar tidak narik default dari database
       const newUser = await sql`
-        INSERT INTO users (id, fullname, email, password, phone, role) 
-        VALUES (${userId}, ${userName}, ${email}, ${password}, ${phone || ''}, 'Admin') 
+        INSERT INTO users (
+          id, fullname, email, password, phone, role, 
+          company_name, company_reg, company_address1, company_address2, 
+          logo_url, logo_align, salesman
+        ) 
+        VALUES (
+          ${userId}, ${userName}, ${email}, ${password}, ${phone || ''}, 'user', 
+          '', '', '', '', 
+          '', 'left', ''
+        ) 
         RETURNING *
       `;
       return res.status(200).json({ success: true, user: newUser[0] });
