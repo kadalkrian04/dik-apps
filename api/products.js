@@ -6,7 +6,6 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { userId } = req.query;
     try {
-      // WAJIB: Ambil produk berdasarkan ID akunnya aja!
       const products = await sql`SELECT * FROM products WHERE user_id = ${userId}`;
       return res.status(200).json({ success: true, products });
     } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
@@ -20,6 +19,14 @@ export default async function handler(req, res) {
         VALUES (${userId}, ${name}, ${price}) RETURNING *
       `;
       return res.status(200).json({ success: true, product: newProduct[0] });
-    } catch (e) { return res.status(500).json({ success: false }); }
+    } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+  }
+
+  if (req.method === 'DELETE') {
+    const { id, userId } = req.query;
+    try {
+      await sql`DELETE FROM products WHERE id = ${id} AND user_id = ${userId}`;
+      return res.status(200).json({ success: true });
+    } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
   }
 }

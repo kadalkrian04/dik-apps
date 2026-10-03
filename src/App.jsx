@@ -288,24 +288,27 @@ function ProductsView({ products, setProducts, currentUser }) {
                 setProducts([...products, data.product]);
                 setNewProduct({ name: '', price: '' });
             } else {
-                const fallbackProd = { id: Date.now(), name: newProduct.name, price: newProduct.price };
-                setProducts([...products, fallbackProd]);
-                setNewProduct({ name: '', price: '' });
+                alert("Gagal simpan ke DB: " + (data.message || "Error di Backend"));
             }
         } catch (err) {
-            const fallbackProd = { id: Date.now(), name: newProduct.name, price: newProduct.price };
-            setProducts([...products, fallbackProd]);
-            setNewProduct({ name: '', price: '' });
+            alert("Error! Pastikan file api/products.js sudah dibuat dan berjalan.");
         }
         setLoading(false);
     };
 
     const handleDelete = async (id) => {
         if(!window.confirm("Hapus produk ini dari daftar?")) return;
-        setProducts(products.filter(p => p.id !== id));
         try {
-            await fetch(`/api/products?id=${id}&userId=${currentUser.id}`, { method: 'DELETE' });
-        } catch(e) { console.log("Simulasi hapus lokal") }
+            const res = await fetch(`/api/products?id=${id}&userId=${currentUser.id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if(data.success) {
+                setProducts(products.filter(p => p.id !== id));
+            } else {
+                alert("Gagal menghapus dari DB");
+            }
+        } catch(e) { 
+            alert("Error koneksi saat menghapus");
+        }
     };
 
     return (
