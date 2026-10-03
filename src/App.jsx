@@ -18,7 +18,7 @@ export default function CashSalesApp() {
       fullname: '',
       email: '',
       phone: '',
-      role: 'Store Manager',
+      role: 'Client',
       salesman: '',
       companyName: '',
       companyReg: '',
@@ -137,6 +137,11 @@ export default function CashSalesApp() {
     window.print();
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.reload(); // Hard refresh agar state benar-benar kembali ke nol
+  };
+
   if (!isAuthenticated) {
     return (
       <AuthScreen 
@@ -185,7 +190,7 @@ export default function CashSalesApp() {
           </div>
           
           {/* Tombol Logout Mobile */}
-          <button onClick={() => { setIsAuthenticated(false); localStorage.clear(); }} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
+          <button onClick={handleLogout} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
             <LogOut size={18} />
           </button>
         </div>
@@ -199,7 +204,7 @@ export default function CashSalesApp() {
         </div>
 
         <div className="hidden md:flex items-center gap-3 p-3 md:px-6">
-          <button onClick={() => { setIsAuthenticated(false); localStorage.clear(); }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
+          <button onClick={handleLogout} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
             <LogOut size={16} /> Logout
           </button>
         </div>
@@ -220,7 +225,7 @@ export default function CashSalesApp() {
             currentUser={currentUser}
           />
         )}
-        {activeTab === 'reports' && <ReportsView />}
+        {activeTab === 'reports' && <ReportsView currentUser={currentUser} />}
         {activeTab === 'profile' && <ProfileView currentUser={currentUser} setCurrentUser={setCurrentUser} setInvoiceData={setInvoiceData} invoiceData={invoiceData} />}
       </main>
 
@@ -353,7 +358,6 @@ function SalesForm({ invoiceData, setInvoiceData, items, setItems, subTotal, tot
                  <label htmlFor="showLogo" className="text-sm font-bold text-slate-700 cursor-pointer">Display Logo on Invoice</label>
               </div>
               
-              {/* OPSI KIRI DAN TENGAH */}
               {invoiceData.showLogo && (
                 <div className="flex items-center gap-3 pl-8">
                   <label className="text-xs font-bold text-slate-600">Logo Alignment:</label>
@@ -521,7 +525,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
   return (
     <div className="w-[794px] min-h-[1123px] print:w-[210mm] print:min-h-[297mm] bg-white text-black font-sans box-border relative mx-auto px-[40px] pt-[40px] pb-[20px] flex flex-col leading-snug">
       
-      {/* OPSI LOGO TENGAH ATAS */}
       {invoiceData.logoAlign === 'center' && invoiceData.showLogo && invoiceData.logoUrl && (
         <div className="flex justify-center mb-4">
            <img src={invoiceData.logoUrl} alt="Logo" className="h-[70px] object-contain" />
@@ -530,7 +533,6 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-4 items-start max-w-[65%]">
-          {/* OPSI LOGO KIRI */}
           {invoiceData.logoAlign === 'left' && invoiceData.showLogo && invoiceData.logoUrl && (
              <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
           )}
@@ -587,46 +589,47 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         </div>
       </div>
 
-      {/* TABEL BARANG */}
-      <table className="w-full text-[11px] mb-8 border-collapse mt-4">
+      <table className="w-full text-[11px] mb-4 border-collapse">
         <thead>
-          <tr className="border-y-2 border-black">
-            <th className="py-1.5 text-left font-bold w-[4%]">Item</th>
-            <th className="py-1.5 text-left font-bold w-[30%]">Description</th>
-            <th className="py-1.5 text-center font-bold w-[10%]">Status</th>
-            <th className="py-1.5 text-center font-bold w-[16%]">Warranty</th>
-            <th className="py-1.5 text-center font-bold w-[6%]">Quantity</th>
-            <th className="py-1.5 text-center font-bold w-[6%]">Uom</th>
-            <th className="py-1.5 text-right font-bold w-[10%]">Unit Price</th>
-            <th className="py-1.5 text-right font-bold w-[8%]">Discount</th>
-            <th className="py-1.5 text-right font-bold w-[10%]">Amount</th>
+          <tr className="border-y-[1.6px] border-black">
+            <th className="py-1 text-left font-bold w-[38%]">Item Description</th>
+            <th className="py-1 text-center font-bold w-[9%]">Status</th>
+            <th className="py-1 text-center font-bold w-[17%]">Warranty</th>
+            <th className="py-1 text-center font-bold w-[12%]">QuantityUom</th>
+            <th className="py-1 text-right font-bold w-[8%]">Unit Price</th>
+            <th className="py-1 text-right font-bold w-[7%]">Discount</th>
+            <th className="py-1 text-right font-bold w-[9%]">Amount</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="border-b-[1.6px] border-black">
           {items.map((item, index) => (
-            <tr key={item.id}>
-              <td className="py-2 align-top">{index + 1}</td>
-              <td className="py-2 align-top">
-                <div className="font-semibold">{item.desc}</div>
-                {item.imei && item.imei !== '-' && <div className="text-[10px] mt-0.5 text-gray-700">SN/IMEI: {item.imei}</div>}
+            <tr key={item.id} className="border-b border-gray-100 border-dashed last:border-none">
+              <td className="py-1.6 align-top pr-1">
+                <div className="flex gap-2">
+                  <span className="w-3">{index + 1}</span>
+                  <div>
+                    <div className="font-bold leading-tight">{item.desc || '-'}</div>
+                    {item.imei && item.imei !== '-' && <div className="text-[8.5px] mt-0.5 text-black-700 font-medium">SN/IMEI: {item.imei}</div>}
+                  </div>
+                </div>
               </td>
-              <td className="py-2 align-top text-center font-semibold">{item.status}</td>
-              <td className="py-2 align-top text-center text-[10px]">{item.warranty || '-'}</td>
-              <td className="py-2 align-top text-center">{item.qty}</td>
-              <td className="py-2 align-top text-center">{item.uom}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(item.price)}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(item.discount)}</td>
-              <td className="py-2 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
+              <td className="py-1.5 align-top text-center font-bold">{item.status}</td>
+              <td className="py-1.5 align-top text-center text-[9px] text-black-700 px-1">{item.warranty || '-'}</td>
+              <td className="py-1.5 align-top text-center">{item.qty} &nbsp; {item.uom}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.price)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(item.discount)}</td>
+              <td className="py-1.5 align-top text-right">{formatCurrency(calculateItemAmount(item))}</td>
             </tr>
           ))}
           <tr style={{ height: '10px' }}><td colSpan="7"></td></tr>
         </tbody>
       </table>
 
+      {/* PENAMBAHAN BORDER ATAS MALAYSIA RINGGIT SEPERTI PERMINTAAN */}
       <div className="flex justify-between text-[10px] mt-1 mb-8 border-t-[1.5px] border-black pt-2">
         <div className="w-[60%] pr-6">
           <p className="mb-2">
-            <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;{numberToWords(totalAmount)}</span>
+            <span className="font-bold">Malaysia Ringgit</span><span className="font-bold"> &nbsp;&nbsp;{numberToWords(totalAmount)}</span>
           </p>
           <p className="font-bold mb-0.5">Remark:</p>
           <p className="text-[9px] leading-tight text-gray-700">{invoiceData.remarks}</p>
@@ -662,7 +665,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
             <p className="font-bold">Company Chop Signature</p>
-            <p className="mt-0.5">Name: {invoiceData.customerName || '-'}</p>
+            <p className="mt-0.5">Name: {currentUser?.fullname || '-'}</p>
             <p className="mt-0.5">Date: {invoiceData.docDate}</p>
           </div>
         </div>
@@ -680,11 +683,26 @@ function DashboardView({ setActiveTab, currentUser }) {
     fetch('/api/invoices')
       .then(res => res.json())
       .then(data => {
-        if(Array.isArray(data)) setRecentSales(data);
+        if(Array.isArray(data)) {
+          // FILTER: Hanya menampilkan data milik user yang sedang login!
+          const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
+          setRecentSales(userSales);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [currentUser.id]);
+
+  // KALKULASI DINAMIS UNTUK STAT CARD
+  const totalSales = recentSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
+  const totalReceipts = recentSales.length;
+  const totalItems = recentSales.reduce((sum, sale) => {
+      let count = 0;
+      if (typeof sale.items === 'string') { try { count = JSON.parse(sale.items).length; } catch(e){} } 
+      else if (Array.isArray(sale.items)) { count = sale.items.length; }
+      return sum + count;
+  }, 0);
+  const avgTransaction = totalReceipts > 0 ? (totalSales / totalReceipts) : 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -706,11 +724,12 @@ function DashboardView({ setActiveTab, currentUser }) {
         </div>
       </div>
 
+      {/* STAT CARD DINAMIS (Tidak lagi hardcoded 12,801 MYR) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="TOTAL SALES (TODAY)" value="MYR 12,801.00" sub="+14.2% vs yesterday" icon={<DollarSign size={20}/>} color="emerald" />
-        <StatCard title="RECEIPTS ISSUED" value={`${recentSales.length} Bills`} sub="Latest synced" icon={<FileSpreadsheet size={20}/>} color="blue" />
-        <StatCard title="DEVICES SOLD" value="4 Units" sub="New & Second" icon={<Smartphone size={20}/>} color="indigo" />
-        <StatCard title="AVG TRANSACTION" value="MYR 3,200.25" sub="Basket size average" icon={<Activity size={20}/>} color="purple" />
+        <StatCard title="TOTAL SALES" value={`MYR ${totalSales.toFixed(2)}`} sub="All time record" icon={<DollarSign size={20}/>} color="emerald" />
+        <StatCard title="RECEIPTS ISSUED" value={`${totalReceipts} Bills`} sub="Saved in database" icon={<FileSpreadsheet size={20}/>} color="blue" />
+        <StatCard title="DEVICES / ITEMS" value={`${totalItems} Units`} sub="Total items sold" icon={<Smartphone size={20}/>} color="indigo" />
+        <StatCard title="AVG TRANSACTION" value={`MYR ${avgTransaction.toFixed(2)}`} sub="Basket size average" icon={<Activity size={20}/>} color="purple" />
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -735,10 +754,12 @@ function DashboardView({ setActiveTab, currentUser }) {
               ) : (
                 recentSales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-slate-50">
-                    <td className="px-4 md:px-6 py-3 font-bold text-slate-800 text-xs md:text-sm">{sale.doc_no}</td>
-                    <td className="px-4 md:px-6 py-3 text-slate-700 text-xs md:text-sm">{sale.customer_name}</td>
-                    <td className="px-4 md:px-6 py-3 text-slate-500 text-xs">{sale.items ? sale.items.length : 0} items</td>
-                    <td className="px-4 md:px-6 py-3 text-right font-bold text-slate-800 text-xs md:text-sm">{sale.total_amount}</td>
+                    <td className="px-4 md:px-6 py-3 font-bold text-slate-800 text-xs md:text-sm">{sale.doc_no || sale.docNo}</td>
+                    <td className="px-4 md:px-6 py-3 text-slate-700 text-xs md:text-sm">{sale.customer_name || sale.customerName}</td>
+                    <td className="px-4 md:px-6 py-3 text-slate-500 text-xs">
+                      {sale.items ? (typeof sale.items === 'string' ? JSON.parse(sale.items).length : sale.items.length) : 0} items
+                    </td>
+                    <td className="px-4 md:px-6 py-3 text-right font-bold text-slate-800 text-xs md:text-sm">{parseFloat(sale.total_amount || sale.totalAmount || 0).toFixed(2)}</td>
                   </tr>
                 ))
               )}
@@ -764,8 +785,24 @@ function StatCard({ title, value, sub, icon, color }) {
   );
 }
 
-function ReportsView() {
+function ReportsView({ currentUser }) {
+  const [totalIncome, setTotalIncome] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/invoices')
+      .then(res => res.json())
+      .then(data => {
+        if(Array.isArray(data)) {
+          const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
+          const sum = userSales.reduce((acc, sale) => acc + parseFloat(sale.total_amount || sale.totalAmount || 0), 0);
+          setTotalIncome(sum);
+        }
+      })
+      .catch(() => {});
+  }, [currentUser.id]);
+
   const exportToExcel = () => alert("Exporting to Excel...");
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
@@ -782,7 +819,7 @@ function ReportsView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-indigo-50 border border-indigo-100 p-4 md:p-6 rounded-xl">
             <p className="text-xs font-bold text-indigo-500 mb-1">Total Sales Income</p>
-            <h4 className="text-xl md:text-2xl font-extrabold text-indigo-900">MYR 12,801.00</h4>
+            <h4 className="text-xl md:text-2xl font-extrabold text-indigo-900">MYR {totalIncome.toFixed(2)}</h4>
           </div>
       </div>
     </div>
