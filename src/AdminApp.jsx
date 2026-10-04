@@ -10,9 +10,8 @@ export default function AdminApp({ currentUser, onLogout }) {
     const [editingUser, setEditingUser] = useState(null);
     const [editForm, setEditForm] = useState({ quotaMax: 500, expiryDate: '' });
 
-    // Simulasi atau fetch data user dari database
+    // Fetch data user dari database
     useEffect(() => {
-        // Ganti endpoint ini sesuai dengan API backend kamu nanti
         fetch('/api/users', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
@@ -31,7 +30,6 @@ export default function AdminApp({ currentUser, onLogout }) {
         e.preventDefault();
         
         try {
-            // Panggil API untuk update langganan user di database
             const res = await fetch('/api/users', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -56,7 +54,7 @@ export default function AdminApp({ currentUser, onLogout }) {
                 alert("Gagal memperbarui: " + (data.message || "Ralat pelayan"));
             }
         } catch (err) {
-            // Fallback lokal sementara jika API belum siap
+            // Fallback lokal sementara
             setUsers(users.map(u => {
                 if (u.id === editingUser.id) {
                     return {
@@ -78,26 +76,28 @@ export default function AdminApp({ currentUser, onLogout }) {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
             {/* Navbar Admin */}
-            <nav className="bg-indigo-900 border-b border-indigo-800 flex items-center justify-between p-4 px-6 shadow-md sticky top-0 z-50">
-                <div className="flex items-center gap-3 text-white">
+            <nav className="bg-indigo-900 border-b border-indigo-800 flex items-center justify-between p-3 md:p-4 md:px-6 shadow-md sticky top-0 z-50">
+                <div className="flex items-center gap-2 md:gap-3 text-white">
                     <ShieldCheck size={24} className="text-emerald-400" />
                     <div>
-                        <h1 className="font-bold text-sm md:text-base tracking-wide">DIK-APPS ADMIN PANEL</h1>
-                        <p className="text-[10px] text-indigo-300">Master Control System</p>
+                        <h1 className="font-bold text-xs md:text-base tracking-wide">DIK-APPS ADMIN PANEL</h1>
+                        <p className="text-[9px] md:text-[10px] text-indigo-300">Master Control System</p>
                     </div>
                 </div>
-                <button onClick={onLogout} className="bg-indigo-800 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                    <LogOut size={16} /> Logout
+                <button onClick={onLogout} className="bg-indigo-800 hover:bg-red-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                    <LogOut size={16} /> <span className="hidden md:inline">Logout</span>
                 </button>
             </nav>
 
-            <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
-                <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <main className="flex-1 p-3 md:p-6 max-w-7xl mx-auto w-full space-y-4 md:space-y-6">
+                
+                {/* Header Section */}
+                <div className="bg-white border border-slate-200 p-4 md:p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600"/> User Management</h2>
+                        <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600"/> User Management</h2>
                         <p className="text-xs text-slate-500 mt-1">Kelola kuota invoice dan masa aktif langganan pengguna.</p>
                     </div>
-                    <div className="relative">
+                    <div className="relative w-full md:w-auto">
                         <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                         <input 
                             type="text" 
@@ -109,8 +109,11 @@ export default function AdminApp({ currentUser, onLogout }) {
                     </div>
                 </div>
 
+                {/* Data Container (Responsive) */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
+                    
+                    {/* TAMPILAN DESKTOP (Tabel) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
                                 <tr>
@@ -158,7 +161,6 @@ export default function AdminApp({ currentUser, onLogout }) {
                                                     <button 
                                                         onClick={() => {
                                                             setEditingUser(u);
-                                                            // Format tanggal ke YYYY-MM-DD untuk input type="date"
                                                             const d = new Date(sub.expiryDate);
                                                             const dateStr = d.toISOString().split('T')[0];
                                                             setEditForm({ quotaMax: sub.quotaMax, expiryDate: dateStr });
@@ -175,6 +177,65 @@ export default function AdminApp({ currentUser, onLogout }) {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* TAMPILAN MOBILE (Card List) */}
+                    <div className="block md:hidden divide-y divide-slate-100">
+                        {loading ? (
+                            <div className="text-center py-8 text-slate-500 text-sm">Memuat data pengguna...</div>
+                        ) : filteredUsers.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 text-sm">Tiada pengguna ditemui.</div>
+                        ) : (
+                            filteredUsers.map(u => {
+                                const sub = u.subscription || { quotaUsed: 0, quotaMax: 0, expiryDate: new Date().toISOString() };
+                                const isExpired = new Date() > new Date(sub.expiryDate);
+                                const isFull = sub.quotaUsed >= sub.quotaMax;
+                                
+                                return (
+                                    <div key={u.id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-bold text-slate-800">{u.fullname}</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">{u.companyName || 'Tiada Nama Kedai'}</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">{u.phone}</div>
+                                            </div>
+                                            <div>
+                                                {isExpired ? (
+                                                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase">Expired</span>
+                                                ) : isFull ? (
+                                                    <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold uppercase">Kuota Habis</span>
+                                                ) : (
+                                                    <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold uppercase">Active</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100 text-xs">
+                                            <div className="text-center w-1/2 border-r border-slate-200">
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Masa Aktif</div>
+                                                <div className="font-bold text-slate-700 mt-0.5">{new Date(sub.expiryDate).toLocaleDateString('en-GB')}</div>
+                                            </div>
+                                            <div className="text-center w-1/2">
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sisa Kuota</div>
+                                                <div className="font-bold text-slate-700 mt-0.5">{sub.quotaMax - sub.quotaUsed} <span className="text-slate-400 font-normal">/ {sub.quotaMax}</span></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={() => {
+                                                setEditingUser(u);
+                                                const d = new Date(sub.expiryDate);
+                                                const dateStr = d.toISOString().split('T')[0];
+                                                setEditForm({ quotaMax: sub.quotaMax, expiryDate: dateStr });
+                                            }} 
+                                            className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                                        >
+                                            <FileEdit size={14}/> Edit Paket Langganan
+                                        </button>
+                                    </div>
+                                )
+                            })
+                        )}
+                    </div>
                 </div>
             </main>
 
@@ -183,17 +244,17 @@ export default function AdminApp({ currentUser, onLogout }) {
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="bg-indigo-600 p-4 flex justify-between items-center text-white">
-                            <h3 className="font-bold flex items-center gap-2"><ShieldCheck size={18}/> Perpanjang / Tambah Kuota</h3>
+                            <h3 className="font-bold flex items-center gap-2 text-sm"><ShieldCheck size={18}/> Perpanjang / Tambah Kuota</h3>
                             <button onClick={() => setEditingUser(null)} className="text-white hover:text-indigo-200"><X size={20}/></button>
                         </div>
-                        <form onSubmit={handleSaveSubscription} className="p-6 space-y-4">
+                        <form onSubmit={handleSaveSubscription} className="p-5 space-y-4">
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-bold">User / Store</p>
-                                <p className="font-bold text-slate-800 text-lg">{editingUser.fullname}</p>
-                                <p className="text-sm text-slate-600">{editingUser.companyName}</p>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">User / Store</p>
+                                <p className="font-bold text-slate-800 text-base mt-1">{editingUser.fullname}</p>
+                                <p className="text-xs text-slate-600">{editingUser.companyName || 'Tiada Nama Kedai'}</p>
                             </div>
                             
-                            <div className="space-y-3 pt-2 border-t border-slate-100">
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Masa Aktif (Hingga Tanggal)</label>
                                     <input 
@@ -201,7 +262,7 @@ export default function AdminApp({ currentUser, onLogout }) {
                                         required 
                                         value={editForm.expiryDate} 
                                         onChange={e => setEditForm({...editForm, expiryDate: e.target.value})} 
-                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" 
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium focus:border-indigo-500" 
                                     />
                                 </div>
                                 <div>
@@ -211,15 +272,17 @@ export default function AdminApp({ currentUser, onLogout }) {
                                         required 
                                         value={editForm.quotaMax} 
                                         onChange={e => setEditForm({...editForm, quotaMax: parseInt(e.target.value) || 0})} 
-                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium" 
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none font-medium focus:border-indigo-500" 
                                     />
-                                    <p className="text-[10px] text-slate-400 mt-1">Kuota yang sudah digunakan saat ini: {editingUser.subscription?.quotaUsed || 0}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1.5 font-medium">
+                                        Kuota yang sudah digunakan: <span className="font-bold text-slate-700">{editingUser.subscription?.quotaUsed || 0}</span> Invoice
+                                    </p>
                                 </div>
                             </div>
 
                             <div className="pt-4 flex gap-3">
                                 <button type="button" onClick={() => setEditingUser(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg text-sm transition-colors">Batal</button>
-                                <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+                                <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors shadow-md">
                                     <CheckCircle size={16}/> Simpan
                                 </button>
                             </div>
