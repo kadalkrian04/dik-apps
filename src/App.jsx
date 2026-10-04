@@ -207,7 +207,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
             </div>
             <div>
               <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">DIK-APPS STORE</h1>
-              <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
+              <p className="text-[10px] md:text-xs text-slate-500">Apps dibuat oleh Andika Bagus Kustiawan</p>
             </div>
           </div>
           <button onClick={onLogout} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
@@ -345,7 +345,7 @@ function ProductsView({ products, setProducts, currentUser }) {
             <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-slate-800">Product Masterlist</h2>
-                    <p className="text-xs text-slate-500">Kelola daftar barang agar lebih cepat saat membuat invois.</p>
+                    <p className="text-xs text-slate-500">Manage your inventory list to speed up the invoicing process.</p>
                 </div>
                 <div className="relative">
                     <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
@@ -570,13 +570,13 @@ function SalesWorkspace({
                onChange={(e) => setTargetShop(e.target.value)} 
                className="bg-transparent text-indigo-800 text-xs font-bold px-2 py-2.5 outline-none cursor-pointer border-r border-indigo-200 w-1/2 sm:w-auto text-center sm:text-left"
              >
-                <option value="CABANG_A">CABANG A</option>
-                <option value="CABANG_B">CABANG B</option>
-                <option value="CABANG_C">CABANG C</option>
-                <option value="CABANG_D">CABANG D</option>
+                <option value="CABANG_A">Kedai A</option>
+                <option value="CABANG_B">Kedai B</option>
+                <option value="CABANG_C">Kedai C</option>
+                <option value="CABANG_D">Kedai D</option>
              </select>
              <button onClick={() => handleSaveToDB('pending')} disabled={isSaving} className="w-1/2 sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
-               <Send size={14} /> Print to Shop
+               <Send size={14} /> Print to Kedai
              </button>
           </div>
 
@@ -1500,6 +1500,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                 <div className="flex justify-between text-xs text-slate-600 font-medium">
                     <span>Active until: {new Date(sub.expiryDate).toLocaleDateString('en-GB')}</span>
                     <span>Quota: {sub.quotaUsed} / {sub.quotaMax} Invoices</span>
+                    <span>If you've used up your data allowance or want to extend your service period, contact Andika </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2 overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${quotaPercentage >= 100 ? 'bg-red-600' : (quotaPercentage > 80 ? 'bg-amber-500' : 'bg-indigo-600')}`} style={{ width: `${Math.min(quotaPercentage, 100)}%` }}></div>
