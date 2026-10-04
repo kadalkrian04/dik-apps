@@ -1607,7 +1607,7 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
             )}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
-              <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@dik-apps.com untuk masuk admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" />
+              <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contoh@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" />
             </div>
             <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label><input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" /></div>
             <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md mt-4">
