@@ -914,7 +914,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
             <th className="py-1.6 text-center font-bold w-[6%]">Quantity</th>
             <th className="py-1.6 text-center font-bold w-[6%]">Uom</th>
             <th className="py-1.6 text-right font-bold w-[10%]">Unit Price</th>
-            <th className="py-1.6 text-right font-bold w-[8%]">Discount</th>
+            <th className="py-1.6 text-right font-bold w-[8%]">Disc</th>
             <th className="py-1.6 text-right font-bold w-[10%]">Amount</th>
           </tr>
         </thead>
@@ -973,7 +973,7 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
 
       <div className="pt-24 flex justify-between text-[12px] w-full pb-4">
         <div className="w-[42%]">
-          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase">{invoiceData.customerName}</div>
+          <div className="border-t-[1.5px] border-black pt-1.5 font-bold uppercase"> </div>
         </div>
         <div className="w-[42%]">
           <div className="border-t-[1.5px] border-black pt-1.5">
