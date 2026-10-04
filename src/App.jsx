@@ -114,13 +114,7 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
     salesman: currentUser.salesman || currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
-    remarks: `Warranty Coverage
-* Waranti hanya meliputi kerosakan teknikal (hardware).
-* Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
-* Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.
-* Battery Health tidak termasuk dalam waranti.
-* Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.
-Goods sold are strictly non-refundable. Warranty claim requires this official receipt.`,
+    remarks: `Warranty Coverage\n* Waranti hanya meliputi kerosakan teknikal (hardware).\n* Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.\n* Waranti terbatal jika peranti dibuka atau dibaiki oleh pihak lain.\n* Battery Health tidak termasuk dalam waranti.\n* Sebarang tuntutan tertakluk kepada pemeriksaan juruteknik ${currentUser.companyName || 'pihak kami'}.\nGoods sold are strictly non-refundable. Warranty claim requires this official receipt.`,
     discountTotal: 0,
     roundCent: 0,
   });
@@ -842,14 +836,14 @@ function A4Preview({ invoiceData, items, calculateItemAmount, formatCurrency, su
       
       {invoiceData.logoAlign === 'center' && invoiceData.showLogo && invoiceData.logoUrl && (
         <div className="flex justify-center mb-4">
-           <img src={invoiceData.logoUrl} alt="Logo" className="h-[70px] object-contain" />
+           <img src={invoiceData.logoUrl} alt="Logo" className="h-[100px] object-contain" />
         </div>
       )}
 
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-4 items-start max-w-[65%]">
           {invoiceData.logoAlign === 'left' && invoiceData.showLogo && invoiceData.logoUrl && (
-             <img src={invoiceData.logoUrl} alt="Logo" className="w-16 h-16 object-contain" />
+             <img src={invoiceData.logoUrl} alt="Logo" className="w-24 h-24 object-contain" />
           )}
           <div>
             <h1 className="text-[14px] font-bold uppercase mb-0.5">{invoiceData.companyName}</h1>
