@@ -4,46 +4,30 @@ import {
   Smartphone, Eye, Trash2, DollarSign, Activity,
   BarChart3, FileSpreadsheet, Download, 
   LogOut, User, CheckCircle, ShieldCheck, Building2, Lock, Mail, Phone, Image as ImageIcon,
-  Package, Save, Send, RefreshCw
+  Package, Save, Send, RefreshCw, Search, X, CreditCard
 } from 'lucide-react';
+import AdminApp from './AdminApp';
 
-export default function CashSalesApp() {
+export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('dik_auth') === 'true';
   });
   const [authMode, setAuthMode] = useState('login'); 
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('dik_user');
-    return savedUser ? JSON.parse(savedUser) : {
-      id: null,
-      fullname: '',
-      email: '',
-      phone: '',
-      salesman: '',
-      companyName: '',
-      companyReg: '',
-      companyAddress1: '',
-      companyAddress2: '',
-      logoUrl: '',
-      logoAlign: 'left' 
-    };
-  });
-
-  const [activeTab, setActiveTab] = useState('sales');
-  const [products, setProducts] = useState([]);
-
-  // Ambil Data Produk khusus milik User ini
-  useEffect(() => {
-    if (isAuthenticated && currentUser?.id) {
-      fetch(`/api/products?userId=${currentUser.id}`, { cache: 'no-store' })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success && Array.isArray(data.products)) {
-                setProducts(data.products);
-            }
-        }).catch(err => console.error("Gagal load produk:", err));
+    if (savedUser) {
+       const parsed = JSON.parse(savedUser);
+       if (!parsed.subscription) {
+           parsed.subscription = { 
+               expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(), 
+               quotaUsed: 0, 
+               quotaMax: 500 
+           };
+       }
+       return parsed;
     }
-  }, [isAuthenticated, currentUser]);
+    return null;
+  });
 
   useEffect(() => {
     localStorage.setItem('dik_auth', isAuthenticated);
@@ -53,6 +37,51 @@ export default function CashSalesApp() {
       localStorage.removeItem('dik_user');
     }
   }, [isAuthenticated, currentUser]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.reload(); 
+  };
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <AuthScreen 
+        authMode={authMode} 
+        setAuthMode={setAuthMode} 
+        onLogin={(user) => {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        }} 
+      />
+    );
+  }
+
+  // Cek jika yang login adalah admin (berdasarkan role atau email spesifik)
+  if (currentUser.role === 'admin' || currentUser.email === 'admin@dik-apps.com') {
+      return <AdminApp currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
+  return <CashSalesWorkspace currentUser={currentUser} setCurrentUser={setCurrentUser} onLogout={handleLogout} />;
+}
+
+// ==========================================
+// WORKSPACE KASIR / PENGGUNA BIASA
+// ==========================================
+function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
+  const [activeTab, setActiveTab] = useState('sales');
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetch(`/api/products?userId=${currentUser.id}`, { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.products)) {
+                setProducts(data.products);
+            }
+        }).catch(err => console.error("Gagal load produk:", err));
+    }
+  }, [currentUser]);
 
   const getTodayDate = () => {
     const d = new Date();
@@ -85,7 +114,6 @@ export default function CashSalesApp() {
     salesman: currentUser.salesman || currentUser.fullname || '',
     pageInfo: 'Page 1 of 1',
     
-    // DEFAULT REMARKS BARU
     remarks: `Warranty Coverage
 * Waranti hanya meliputi kerosakan teknikal (hardware).
 * Kerosakan akibat jatuh, pecah, air atau kecuaian tidak dilindungi.
@@ -151,28 +179,8 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
     return result.replace(/\s+/g, ' ').trim() + ' Only';
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.reload(); 
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <AuthScreen 
-        authMode={authMode} 
-        setAuthMode={setAuthMode} 
-        onLogin={(user) => {
-          if(user) setCurrentUser(user);
-          setIsAuthenticated(true);
-        }} 
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
-      
-      {/* Menggunakan text-size-adjust untuk mengatasi zoom input pada iOS/iPhone */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -186,9 +194,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
           .no-print { display: none !important; }
           .print-only { display: block !important; }
         }
-        @media screen and (max-width: 768px) {
-          input, select, textarea { font-size: 16px !important; }
-        }
+        input, select, textarea { font-size: 16px !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
@@ -204,7 +210,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
               <p className="text-[10px] md:text-xs text-slate-500">Sabah POS System</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
+          <button onClick={onLogout} className="md:hidden flex text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
             <LogOut size={18} />
           </button>
         </div>
@@ -218,7 +224,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
         </div>
 
         <div className="hidden md:flex items-center gap-3 p-3 md:px-6">
-          <button onClick={handleLogout} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
+          <button onClick={onLogout} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors border border-red-200">
             <LogOut size={16} /> Logout
           </button>
         </div>
@@ -236,6 +242,7 @@ Goods sold are strictly non-refundable. Warranty claim requires this official re
             formatCurrency={formatCurrency}
             numberToWords={numberToWords}
             currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
           />
         )}
         {activeTab === 'reports' && <ReportsView currentUser={currentUser} />}
@@ -269,6 +276,9 @@ function TabButton({ icon, label, isActive, onClick }) {
 function ProductsView({ products, setProducts, currentUser }) {
     const [newProduct, setNewProduct] = useState({ name: '', price: '' });
     const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [editingId, setEditingId] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', price: '' });
 
     const handleAddProduct = async (e) => {
         e.preventDefault();
@@ -307,12 +317,45 @@ function ProductsView({ products, setProducts, currentUser }) {
         }
     };
 
+    const handleSaveEdit = async (id) => {
+        try {
+            const res = await fetch(`/api/products?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, ...editForm })
+            });
+            const data = await res.json();
+            if(data.success) {
+                setProducts(products.map(p => p.id === id ? { ...p, name: editForm.name, price: editForm.price } : p));
+                setEditingId(null);
+            } else {
+                setProducts(products.map(p => p.id === id ? { ...p, name: editForm.name, price: editForm.price } : p));
+                setEditingId(null);
+            }
+        } catch (err) {
+            setProducts(products.map(p => p.id === id ? { ...p, name: editForm.name, price: editForm.price } : p));
+            setEditingId(null);
+        }
+    };
+
+    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
     return (
         <div className="max-w-5xl mx-auto space-y-6">
-            <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center justify-between">
+            <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-slate-800">Product Masterlist</h2>
                     <p className="text-xs text-slate-500">Kelola daftar barang agar lebih cepat saat membuat invois.</p>
+                </div>
+                <div className="relative">
+                    <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Cari produk..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none font-medium w-full md:w-64 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    />
                 </div>
             </div>
 
@@ -334,31 +377,51 @@ function ProductsView({ products, setProducts, currentUser }) {
                     </form>
                 </div>
 
-                <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                            <tr>
-                                <th className="px-4 py-3">Product Name</th>
-                                <th className="px-4 py-3 text-right">Price (MYR)</th>
-                                <th className="px-4 py-3 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {products.length === 0 ? (
-                                <tr><td colSpan="3" className="text-center py-6 text-slate-500 text-xs">Belum ada produk. Tambahkan produk untuk mengaktifkan ciri isi-auto (auto-fill)!</td></tr>
-                            ) : (
-                                products.map(p => (
-                                    <tr key={p.id} className="hover:bg-slate-50">
-                                        <td className="px-4 py-3 font-medium text-slate-800">{p.name}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-indigo-700">{parseFloat(p.price).toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={16}/></button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col max-h-[400px]">
+                    <div className="overflow-y-auto flex-1 no-scrollbar">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th className="px-4 py-3">Product Name</th>
+                                    <th className="px-4 py-3 text-right">Price (MYR)</th>
+                                    <th className="px-4 py-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredProducts.length === 0 ? (
+                                    <tr><td colSpan="3" className="text-center py-6 text-slate-500 text-xs">Belum ada produk atau tidak ditemukan!</td></tr>
+                                ) : (
+                                    filteredProducts.map(p => (
+                                        <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-slate-800">
+                                                {editingId === p.id ? (
+                                                    <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border border-slate-300 rounded px-2 py-1 outline-none text-sm focus:ring-1 focus:ring-indigo-300" />
+                                                ) : p.name}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-indigo-700">
+                                                {editingId === p.id ? (
+                                                    <input type="number" step="0.01" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} className="w-24 text-right border border-slate-300 rounded px-2 py-1 outline-none text-sm ml-auto focus:ring-1 focus:ring-indigo-300" />
+                                                ) : parseFloat(p.price).toFixed(2)}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {editingId === p.id ? (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <button onClick={() => handleSaveEdit(p.id)} className="text-emerald-500 hover:text-emerald-700 p-1 rounded hover:bg-emerald-50" title="Simpan"><CheckCircle size={18}/></button>
+                                                        <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100" title="Batal"><X size={18}/></button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <button onClick={() => { setEditingId(p.id); setEditForm({ name: p.name, price: p.price }); }} className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50" title="Edit"><FileEdit size={18}/></button>
+                                                        <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50" title="Hapus"><Trash2 size={18}/></button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -368,7 +431,7 @@ function ProductsView({ products, setProducts, currentUser }) {
 function SalesWorkspace({ 
   invoiceData, setInvoiceData, items, setItems, products,
   subTotal, totalAmount, 
-  calculateItemAmount, formatCurrency, numberToWords, currentUser 
+  calculateItemAmount, formatCurrency, numberToWords, currentUser, setCurrentUser 
 }) {
   const [workspaceMode, setWorkspaceMode] = useState('form'); 
   const [isSaving, setIsSaving] = useState(false);
@@ -376,12 +439,42 @@ function SalesWorkspace({
   const [printStatusInfo, setPrintStatusInfo] = useState('');
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
+  const checkQuotaLimit = () => {
+      const sub = currentUser.subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date() };
+      const isExpired = new Date() > new Date(sub.expiryDate);
+      const isFull = sub.quotaUsed >= sub.quotaMax;
+
+      if (isExpired) {
+          alert("Maaf, masa aktif langganan Anda telah habis (1 Bulan). Sila hubungi Admin untuk memperpanjang akses.");
+          return false;
+      }
+      if (isFull) {
+          alert("Maaf, kuota cetak invoice Anda (Batas 500) telah habis. Sila hubungi Admin.");
+          return false;
+      }
+      return true;
+  };
+
+  const incrementQuotaUsed = () => {
+      const updatedUser = {
+          ...currentUser,
+          subscription: {
+              ...currentUser.subscription,
+              quotaUsed: (currentUser.subscription?.quotaUsed || 0) + 1
+          }
+      };
+      setCurrentUser(updatedUser);
+  };
+
   const handlePrintLocal = () => {
+    if (!checkQuotaLimit()) return;
     if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
+    incrementQuotaUsed();
     window.print();
   };
 
   const handleSaveToDB = async (printStatus = 'none') => {
+    if (!checkQuotaLimit()) return;
     setIsSaving(true);
     try {
       const res = await fetch('/api/invoices', {
@@ -406,6 +499,7 @@ function SalesWorkspace({
       const data = await res.json();
       
       if(data.success) {
+        incrementQuotaUsed();
         if (printStatus === 'pending') {
             alert(`Berjaya! Arahan print telah dihantar ke antrean ${targetShop}. PC Toko akan mencetaknya sebentar lagi.`);
             setPrintStatusInfo('pending');
@@ -446,7 +540,6 @@ function SalesWorkspace({
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
         
-        {/* Bahagian Butang Paparan dan Status */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 flex-shrink-0">
                <button onClick={() => setWorkspaceMode('form')} className={`flex-1 sm:flex-initial px-4 py-2 flex items-center justify-center gap-2 text-xs md:text-sm font-semibold rounded-md transition-all ${workspaceMode === 'form' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
@@ -457,7 +550,6 @@ function SalesWorkspace({
                </button>
             </div>
             
-            {/* Butang Check Status Print */}
             <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-lg px-3">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
                    <span>Print Status:</span>
@@ -471,7 +563,6 @@ function SalesWorkspace({
             </div>
         </div>
         
-        {/* Bahagian Butang Simpan dan Cetak */}
         <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap gap-2 items-stretch sm:items-center w-full lg:w-auto">
           <div className="flex w-full sm:w-auto items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden flex-shrink-0">
              <select 
@@ -1220,6 +1311,10 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const sub = currentUser.subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date() };
+  const quotaPercentage = (sub.quotaUsed / sub.quotaMax) * 100;
+  const isExpired = new Date() > new Date(sub.expiryDate);
+
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1252,7 +1347,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
           companyAddress2: data.user.company_address2 || formData.companyAddress2,
           logoUrl: data.user.logo_url || formData.logoUrl,
           logoAlign: data.user.logo_align || formData.logoAlign || 'left',
-          salesman: data.user.salesman || formData.salesman
+          salesman: data.user.salesman || formData.salesman,
+          subscription: currentUser.subscription
         };
         setCurrentUser(mappedUser);
         setInvoiceData({
@@ -1389,6 +1485,33 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
               </div>
             </div>
           </div>
+
+          <div className="border-t border-slate-200 pt-6">
+            <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <CreditCard size={20} className="text-indigo-600" /> Subscription & Quota
+            </h3>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-slate-700">Current Plan: 1 Month Basic</span>
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md ${isExpired ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {isExpired ? 'Expired' : 'Active'}
+                    </span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-600 font-medium">
+                    <span>Active until: {new Date(sub.expiryDate).toLocaleDateString('en-GB')}</span>
+                    <span>Quota: {sub.quotaUsed} / {sub.quotaMax} Invoices</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${quotaPercentage >= 100 ? 'bg-red-600' : (quotaPercentage > 80 ? 'bg-amber-500' : 'bg-indigo-600')}`} style={{ width: `${Math.min(quotaPercentage, 100)}%` }}></div>
+                </div>
+                {(quotaPercentage >= 100 || isExpired) && (
+                    <p className="text-xs text-red-600 font-bold mt-2">
+                        {isExpired ? 'Masa aktif langganan anda telah tamat.' : 'Anda telah mencapai batas maksimal pembuatan invoice.'} Sila hubungi Admin untuk memperpanjang.
+                    </p>
+                )}
+            </div>
+          </div>
+
           <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all">
             {loading ? 'Saving...' : 'Save All Changes'}
           </button>
@@ -1410,6 +1533,10 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Cek jika yg coba login adalah admin
+    const isLoginAdmin = email === 'admin@dik-apps.com';
+
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -1430,17 +1557,32 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
           companyAddress2: data.user.company_address2 || address2 || '',
           logoUrl: data.user.logo_url || '',
           logoAlign: data.user.logo_align || 'left',
-          salesman: data.user.salesman || ''
+          salesman: data.user.salesman || '',
+          role: data.user.role || (isLoginAdmin ? 'admin' : 'user'), // Assign role admin
+          subscription: data.user.subscription || { 
+              expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(), 
+              quotaUsed: 0, 
+              quotaMax: 500 
+          }
         };
         onLogin(mappedUser);
       } else {
         alert(data.message || "Authentication failed");
       }
     } catch {
+      // Fallback lokal jika API belum ready
       onLogin({ 
         id: Date.now().toString(),
-        fullname: fullName || 'Admin DIK-APPS', email, phone, 
-        companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '', salesman: fullName, logoUrl: '', logoAlign: 'left'
+        fullname: isLoginAdmin ? 'Super Admin' : (fullName || 'User Biasa'), 
+        email, 
+        phone, 
+        companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '', salesman: fullName, logoUrl: '', logoAlign: 'left',
+        role: isLoginAdmin ? 'admin' : 'user', // Set local role
+        subscription: { 
+            expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(), 
+            quotaUsed: 0, 
+            quotaMax: 500 
+        }
       });
     }
     setLoading(false);
@@ -1463,7 +1605,10 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
                 <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone (+60)</label><input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" /></div>
               </>
             )}
-            <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label><input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" /></div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
+              <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@dik-apps.com untuk masuk admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" />
+            </div>
             <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label><input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs" /></div>
             <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md mt-4">
               {loading ? 'Processing...' : (authMode === 'login' ? 'Login' : 'Register')}
