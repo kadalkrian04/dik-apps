@@ -1500,7 +1500,6 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                 <div className="flex justify-between text-xs text-slate-600 font-medium">
                     <span>Active until: {new Date(sub.expiryDate).toLocaleDateString('en-GB')}</span>
                     <span>Quota: {sub.quotaUsed} / {sub.quotaMax} Invoices</span>
-                    <span>If you've used up your data allowance or want to extend your service period, contact Andika </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2 overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${quotaPercentage >= 100 ? 'bg-red-600' : (quotaPercentage > 80 ? 'bg-amber-500' : 'bg-indigo-600')}`} style={{ width: `${Math.min(quotaPercentage, 100)}%` }}></div>
