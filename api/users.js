@@ -30,7 +30,6 @@ export default async function handler(req, res) {
   
   else if (req.method === 'PUT') {
     try {
-      // Tambahkan quotaUsed ke dalam penerimaan parameter
       const { userId, quotaMax, expiryDate, quotaUsed } = req.body;
 
       if (!userId) {
@@ -42,9 +41,8 @@ export default async function handler(req, res) {
           return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
       }
 
-      const currentSub = userData[0].subscription || { quotaUsed: 0, quotaMax: 500 };
+      const currentSub = userData[0].subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date().toISOString() };
       
-      // Update nilai jika dikirim melalui body permintaan (Partial Update)
       if (quotaMax !== undefined) currentSub.quotaMax = quotaMax;
       if (expiryDate !== undefined) currentSub.expiryDate = new Date(expiryDate).toISOString();
       if (quotaUsed !== undefined) currentSub.quotaUsed = quotaUsed;
@@ -55,10 +53,7 @@ export default async function handler(req, res) {
         WHERE id = ${userId}
       `;
 
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Data subscription berhasil diperbarui' 
-      });
+      return res.status(200).json({ success: true, message: 'Data subscription berhasil diperbarui' });
     } catch (error) {
       console.error("Error updating subscription:", error);
       return res.status(500).json({ success: false, message: 'Gagal memperbarui langganan' });

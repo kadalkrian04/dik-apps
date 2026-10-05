@@ -56,7 +56,6 @@ export default function App() {
     );
   }
 
-  // Cek jika yang login adalah admin (berdasarkan role atau email spesifik)
   if (currentUser.role === 'admin' || currentUser.email === 'admin@dik-apps.com') {
       return <AdminApp currentUser={currentUser} onLogout={handleLogout} />;
   }
@@ -68,7 +67,6 @@ export default function App() {
 // WORKSPACE KASIR / PENGGUNA BIASA
 // ==========================================
 function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
-  // PERUBAHAN: Set menu default ke 'dashboard' bukan 'sales'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts] = useState([]);
 
@@ -124,6 +122,36 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
     { id: 1, desc: '', imei: '', status: 'NEW', warranty: '', qty: 1, uom: 'UNIT', price: 0, discount: 0 }
   ]);
 
+  const handleEditReceipt = (sale) => {
+    const dateObj = new Date(sale.created_at || Date.now());
+    const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+
+    setInvoiceData(prev => ({
+        ...prev,
+        docNo: sale.doc_no || sale.docNo || prev.docNo,
+        docDate: formattedDate,
+        customerName: sale.customer_name || sale.customerName || '',
+        customerAddress: sale.customer_address || sale.customerAddress || '',
+        customerPhone: sale.customer_phone || sale.customerPhone || '',
+        customerFax: sale.customer_fax || sale.customerFax || '',
+        customerGst: sale.customer_gst || sale.customerGst || '',
+        paymentMethod: sale.payment_method || sale.paymentMethod || 'CASH',
+        discountTotal: parseFloat(sale.discount_total || sale.discountTotal || 0),
+        roundCent: parseFloat(sale.round_cent || sale.roundCent || 0),
+    }));
+
+    try {
+        const parsedItems = typeof sale.items === 'string' ? JSON.parse(sale.items) : sale.items;
+        if (parsedItems && Array.isArray(parsedItems) && parsedItems.length > 0) {
+            setItems(parsedItems);
+        }
+    } catch(e) {
+        console.error("Gagal parse items", e);
+    }
+    
+    setActiveTab('sales');
+  };
+
   const calculateItemAmount = (item) => {
     return (parseFloat(item.qty || 0) * parseFloat(item.price || 0)) - parseFloat(item.discount || 0);
   };
@@ -176,7 +204,6 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative print:bg-white print:min-h-0">
-      {/* PERUBAHAN: Penambahan custom-scrollbar untuk desain tabel scroll di dalam <style> */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -195,9 +222,9 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1e2336; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}} />
 
       <nav className="no-print bg-white border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between sticky top-0 z-50 shadow-sm">
@@ -232,7 +259,7 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
       </nav>
 
       <main className="no-print flex-1 overflow-auto relative p-3 md:p-6">
-        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} />}
+        {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} currentUser={currentUser} onEditReceipt={handleEditReceipt} />}
         {activeTab === 'products' && <ProductsView products={products} setProducts={setProducts} currentUser={currentUser} />}
         {activeTab === 'sales' && (
           <SalesWorkspace 
@@ -274,10 +301,7 @@ function TabButton({ icon, label, isActive, onClick }) {
   );
 }
 
-// ==========================================
-// DASHBOARD VIEW (DIPERBARUI PENUH)
-// ==========================================
-function DashboardView({ setActiveTab, currentUser }) {
+function DashboardView({ setActiveTab, currentUser, onEditReceipt }) {
   const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -289,7 +313,6 @@ function DashboardView({ setActiveTab, currentUser }) {
       .then(data => {
         if(Array.isArray(data)) {
           const userSales = data.filter(inv => inv.user_id === currentUser.id || inv.userId === currentUser.id);
-          // Mengurutkan dari yang paling baru
           userSales.sort((a, b) => new Date(b.created_at || Date.now()) - new Date(a.created_at || Date.now()));
           setRecentSales(userSales);
         }
@@ -323,7 +346,6 @@ function DashboardView({ setActiveTab, currentUser }) {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* 1. Header Putih */}
       <div className="bg-white border border-slate-200 p-5 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm relative overflow-hidden">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-2">
@@ -342,7 +364,6 @@ function DashboardView({ setActiveTab, currentUser }) {
         </div>
       </div>
 
-      {/* 2. Kartu Statistik Putih */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="TOTAL SALES" value={`MYR ${totalSales.toFixed(2)}`} sub="All time record" icon={<DollarSign size={20}/>} color="emerald" />
         <StatCard title="RECEIPTS ISSUED" value={`${totalReceipts} Bills`} sub="Saved in database" icon={<FileSpreadsheet size={20}/>} color="blue" />
@@ -350,38 +371,11 @@ function DashboardView({ setActiveTab, currentUser }) {
         <StatCard title="AVG TRANSACTION" value={`MYR ${avgTransaction.toFixed(2)}`} sub="Basket size average" icon={<Activity size={20}/>} color="purple" />
       </div>
 
-      {/* 3. Quick POS Actions (Dark Theme) */}
-      <div className="bg-[#131722] border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <div className="flex items-center gap-2 mb-4">
-              <span className="text-amber-400">⚡</span>
-              <h3 className="font-bold text-slate-300 text-xs md:text-sm uppercase tracking-wider">Quick POS Actions</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <button onClick={() => setActiveTab('sales')} className="flex items-center gap-3 bg-[#1e2336] hover:bg-[#2a314d] border border-slate-700/50 p-3 rounded-xl transition-all text-left group">
-                  <div className="w-10 h-10 bg-indigo-900/50 text-indigo-400 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"><Smartphone size={18}/></div>
-                  <div><div className="text-white font-bold text-sm">+ Add Phone</div><div className="text-slate-400 text-[10px]">Preset IMEI row</div></div>
-              </button>
-              <button onClick={() => setActiveTab('sales')} className="flex items-center gap-3 bg-[#1e2336] hover:bg-[#2a314d] border border-slate-700/50 p-3 rounded-xl transition-all text-left group">
-                  <div className="w-10 h-10 bg-emerald-900/50 text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"><Package size={18}/></div>
-                  <div><div className="text-white font-bold text-sm">+ Add Accessory</div><div className="text-slate-400 text-[10px]">Charger/Case/Glass</div></div>
-              </button>
-              <button onClick={() => setActiveTab('sales')} className="flex items-center gap-3 bg-[#1e2336] hover:bg-[#2a314d] border border-slate-700/50 p-3 rounded-xl transition-all text-left group">
-                  <div className="w-10 h-10 bg-blue-900/50 text-blue-400 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"><Save size={18}/></div>
-                  <div><div className="text-white font-bold text-sm">Save Current Bill</div><div className="text-slate-400 text-[10px]">Archive to history</div></div>
-              </button>
-              <button onClick={() => setActiveTab('sales')} className="flex items-center gap-3 bg-[#1e2336] hover:bg-[#2a314d] border border-slate-700/50 p-3 rounded-xl transition-all text-left group">
-                  <div className="w-10 h-10 bg-purple-900/50 text-purple-400 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"><Eye size={18}/></div>
-                  <div><div className="text-white font-bold text-sm">Preview Printable</div><div className="text-slate-400 text-[10px]">A4 format view</div></div>
-              </button>
-          </div>
-      </div>
-
-      {/* 4. Tabel Desain Dark Theme dengan Scroll (Max Height) */}
-      <div className="bg-[#131722] border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col">
-        <div className="p-4 md:p-5 border-b border-slate-800 bg-[#131722] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 md:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h3 className="font-bold text-white text-base md:text-lg">Recent Cash Sales Receipts</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Click any receipt to load into the live editor or print</p>
+            <h3 className="font-bold text-slate-800 text-base md:text-lg">Recent Cash Sales Receipts</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Click any receipt to load into the live editor</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -392,13 +386,13 @@ function DashboardView({ setActiveTab, currentUser }) {
                 placeholder="Search Customer / IMEI / Bill #" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-[#1e2336] border border-slate-700 rounded-lg text-xs text-white outline-none focus:border-indigo-500 transition-all placeholder-slate-500"
+                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 outline-none focus:border-indigo-500 transition-all placeholder-slate-400"
               />
             </div>
             <select 
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full sm:w-auto bg-[#1e2336] border border-slate-700 text-white rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500 cursor-pointer"
+              className="w-full sm:w-auto bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value="All Payment Types">All Payment Types</option>
               <option value="CASH">CASH</option>
@@ -410,10 +404,9 @@ function DashboardView({ setActiveTab, currentUser }) {
           </div>
         </div>
         
-        {/* Batasan tinggi dan scroll ada di class ini (max-h-[350px]) */}
-        <div className="overflow-x-auto max-h-[350px] overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap text-slate-300 relative">
-            <thead className="bg-[#1e2336] border-b border-slate-700 text-slate-400 uppercase text-[10px] md:text-[11px] font-bold tracking-wider sticky top-0 z-10">
+        <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
+          <table className="w-full text-left text-sm whitespace-nowrap text-slate-700 relative">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] md:text-[11px] font-bold tracking-wider sticky top-0 z-10">
               <tr>
                 <th className="px-4 md:px-6 py-4">BILL NO & DATE</th>
                 <th className="px-4 md:px-6 py-4">CUSTOMER</th>
@@ -423,7 +416,7 @@ function DashboardView({ setActiveTab, currentUser }) {
                 <th className="px-4 md:px-6 py-4 text-center">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr><td colSpan="6" className="text-center py-8 text-slate-500 text-xs">Loading database records...</td></tr>
               ) : filteredSales.length === 0 ? (
@@ -439,44 +432,46 @@ function DashboardView({ setActiveTab, currentUser }) {
                   const paymentMethod = (sale.payment_method || sale.paymentMethod || 'CASH').toUpperCase();
                   const dateObj = new Date(sale.created_at || Date.now());
                   
-                  // Desain badge yang disesuaikan
-                  let badgeStyle = "bg-slate-900/40 text-slate-400 border-slate-700";
+                  let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200";
                   let formattedPayment = paymentMethod;
                   
-                  if (paymentMethod.includes('CASH')) badgeStyle = "bg-emerald-900/40 text-emerald-400 border-emerald-800";
-                  else if (paymentMethod.includes('DUITNOW')) badgeStyle = "bg-pink-900/40 text-pink-400 border-pink-800";
+                  if (paymentMethod.includes('CASH')) badgeStyle = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                  else if (paymentMethod.includes('DUITNOW')) badgeStyle = "bg-pink-100 text-pink-700 border-pink-200";
                   else if (paymentMethod.includes('CARD')) {
-                      badgeStyle = "bg-blue-900/40 text-blue-400 border-blue-800";
+                      badgeStyle = "bg-blue-100 text-blue-700 border-blue-200";
                       formattedPayment = "CARD"; 
                   }
 
                   return (
-                    <tr key={sale.id} className="hover:bg-[#1a1f33] transition-colors">
+                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-4 md:px-6 py-4">
-                        <div className="font-bold text-[#8ba3f8] text-xs">{sale.doc_no || sale.docNo}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{dateObj.toLocaleDateString('en-GB')} • {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="font-bold text-indigo-600 text-xs">{sale.doc_no || sale.docNo}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{dateObj.toLocaleDateString('en-GB')} • {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </td>
                       <td className="px-4 md:px-6 py-4">
-                        <div className="font-bold text-white text-xs">{sale.customer_name || sale.customerName}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{sale.customer_phone || sale.customerPhone || '-'}</div>
+                        <div className="font-bold text-slate-800 text-xs">{sale.customer_name || sale.customerName}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{sale.customer_phone || sale.customerPhone || '-'}</div>
                       </td>
                       <td className="px-4 md:px-6 py-4">
-                        <div className="font-bold text-white text-xs truncate max-w-[200px]">{firstItem.desc}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{firstItem.imei || '-'}</div>
+                        <div className="font-bold text-slate-800 text-xs truncate max-w-[200px]">{firstItem.desc}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{firstItem.imei || '-'}</div>
                       </td>
                       <td className="px-4 md:px-6 py-4">
                          <span className={`px-2 py-1 rounded text-[10px] font-bold border ${badgeStyle}`}>
                             {formattedPayment}
                          </span>
                       </td>
-                      <td className="px-4 md:px-6 py-4 text-right font-bold text-emerald-400 text-xs">
+                      <td className="px-4 md:px-6 py-4 text-right font-bold text-emerald-600 text-xs">
                         {parseFloat(sale.total_amount || sale.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 md:px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => setActiveTab('sales')} className="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 px-3 rounded text-xs font-bold transition-colors">Edit</button>
-                          <button onClick={() => setActiveTab('sales')} className="bg-slate-700 hover:bg-slate-600 text-white p-1.5 px-3 rounded text-xs font-bold transition-colors">Print</button>
-                          <button className="bg-rose-900/40 hover:bg-rose-800/80 text-rose-400 p-1.5 rounded transition-colors"><Trash2 size={14}/></button>
+                          <button onClick={() => onEditReceipt(sale)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-1.5 px-4 rounded text-xs font-bold transition-colors shadow-sm">
+                            Edit
+                          </button>
+                          <button className="bg-red-50 hover:bg-red-100 text-red-500 p-1.5 rounded transition-colors border border-red-100">
+                            <Trash2 size={14}/>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -490,10 +485,6 @@ function DashboardView({ setActiveTab, currentUser }) {
     </div>
   );
 }
-
-// ==========================================
-// KODE LAINNYA DI BAWAH INI TETAP SAMA (TIDAK ADA YANG DIUBAH)
-// ==========================================
 
 function StatCard({ title, value, sub, icon, color }) {
   const colors = { emerald: 'bg-emerald-100 text-emerald-600', blue: 'bg-blue-100 text-blue-600', indigo: 'bg-indigo-100 text-indigo-600', purple: 'bg-purple-100 text-purple-600' };
@@ -692,14 +683,29 @@ function SalesWorkspace({
   };
 
   const incrementQuotaUsed = () => {
+      const currentSub = currentUser.subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date().toISOString() };
+      const newQuotaUsed = (currentSub.quotaUsed || 0) + 1;
+      
       const updatedUser = {
           ...currentUser,
           subscription: {
-              ...currentUser.subscription,
-              quotaUsed: (currentUser.subscription?.quotaUsed || 0) + 1
+              ...currentSub,
+              quotaUsed: newQuotaUsed
           }
       };
       setCurrentUser(updatedUser);
+
+      // Perbaikan: Kirim SEMUA data subscription agar backend tidak menolak
+      fetch('/api/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              userId: currentUser.id,
+              quotaMax: currentSub.quotaMax,
+              expiryDate: currentSub.expiryDate,
+              quotaUsed: newQuotaUsed
+          })
+      }).catch(err => console.error("Gagal sinkronisasi kuota ke database", err));
   };
 
   const handlePrintLocal = () => {
@@ -729,7 +735,8 @@ function SalesWorkspace({
           items: items,
           userId: currentUser.id,
           printStatus: printStatus, 
-          targetShop: printStatus === 'pending' ? targetShop : '' 
+          targetShop: printStatus === 'pending' ? targetShop : '',
+          paymentMethod: invoiceData.paymentMethod
         })
       });
       const data = await res.json();
