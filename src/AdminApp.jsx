@@ -33,38 +33,66 @@ export default function AdminApp({ currentUser, onLogout }) {
             });
     };
 
-    useEffect(() => {
+useEffect(() => {
         // Load data user saat pertama kali buka
         fetchUsersRealtime();
 
-        // 2. Sistem Riwayat Log Akses dengan Auto-Delete 7 Hari
+        // Sistem Riwayat Log Akses dengan Auto-Delete 7 Hari
         const savedLogs = JSON.parse(localStorage.getItem('admin_access_logs') || '[]');
-        
-        // Filter: Hapus otomatis log yang usianya lebih dari 7 hari (7 * 24 * 60 * 60 * 1000 milidetik)
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         const validLogs = savedLogs.filter(log => log.timestamp > sevenDaysAgo);
 
-        // Fetch IP saat ini
-        fetch('https://ipapi.co/json/')
+        // Fungsi penyimpan log
+        const saveLog = (ip, location, coords) => {
+            const newLog = { id: Date.now(), timestamp: Date.now(), ip, location, coords };
+            const updatedLogs = [newLog, ...validLogs];
+            setAccessLogs(updatedLogs);
+            localStorage.setItem('admin_access_logs', JSON.stringify(updatedLogs));
+        };
+
+        // Fallback jika user menolak akses GPS
+        const fetchIpFallback = () => {
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => saveLog(data.ip, `${data.city || 'Unknown'}, ${data.country_name || ''} (IP Base)`, `${data.latitude || 0}, ${data.longitude || 0}`))
+                .catch(() => setAccessLogs(validLogs));
+        };
+
+        // 1. Ambil IP Address
+        fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
-            .then(data => {
-                const newLog = {
-                    id: Date.now(),
-                    timestamp: Date.now(),
-                    ip: data.ip,
-                    location: `${data.city || 'Unknown'}, ${data.country_name || ''}`,
-                    coords: `${data.latitude || 0}, ${data.longitude || 0}`
-                };
+            .then(ipData => {
+                const currentIp = ipData.ip;
                 
-                // Tambahkan log baru ke urutan pertama, lalu simpan ke local storage
-                const updatedLogs = [newLog, ...validLogs];
-                setAccessLogs(updatedLogs);
-                localStorage.setItem('admin_access_logs', JSON.stringify(updatedLogs));
+                // 2. Minta koordinat GPS tingkat akurasi tinggi ke perangkat
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        async (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+                            
+                            // 3. Ubah koordinat GPS akurat menjadi nama Kota & Negara
+                            try {
+                                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
+                                const geoData = await geoRes.json();
+                                const exactLoc = `${geoData.city || geoData.locality || geoData.principalSubdivision || 'Unknown'}, ${geoData.countryName || ''}`;
+                                
+                                saveLog(currentIp, exactLoc, `${lat}, ${lon}`);
+                            } catch (e) {
+                                saveLog(currentIp, "Koordinat GPS Akurat", `${lat}, ${lon}`);
+                            }
+                        },
+                        (error) => {
+                            // Jika izin akses lokasi ditolak oleh user, gunakan IP Base (Jakarta dsb)
+                            fetchIpFallback();
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                    );
+                } else {
+                    fetchIpFallback();
+                }
             })
-            .catch(() => {
-                // Jika gagal fetch IP, tetap tampilkan log yang masih valid (tidak lebih 7 hari)
-                setAccessLogs(validLogs); 
-            });
+            .catch(() => fetchIpFallback());
     }, []);
 
     const handleSaveSubscription = async (e) => {

@@ -5,10 +5,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      // Ambil semua data user dari database
       const users = await sql`SELECT * FROM users`;
       
-      // Petakan data agar sesuai dengan format yang dibaca oleh AdminApp.jsx
       const mappedUsers = users.map(u => ({
         id: u.id,
         fullname: u.fullname,
@@ -16,7 +14,6 @@ export default async function handler(req, res) {
         phone: u.phone,
         companyName: u.company_name,
         role: u.role,
-        // Jika data subscription di database masih NULL, berikan nilai default
         subscription: u.subscription || {
             expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             quotaUsed: 0,
@@ -33,25 +30,25 @@ export default async function handler(req, res) {
   
   else if (req.method === 'PUT') {
     try {
-      const { userId, quotaMax, expiryDate } = req.body;
+      // Tambahkan quotaUsed ke dalam penerimaan parameter
+      const { userId, quotaMax, expiryDate, quotaUsed } = req.body;
 
       if (!userId) {
         return res.status(400).json({ success: false, message: 'User ID tidak ditemukan' });
       }
 
-      // 1. Ambil data langganan saat ini agar 'quotaUsed' tidak kereset saat admin mengedit
       const userData = await sql`SELECT subscription FROM users WHERE id = ${userId}`;
       if (userData.length === 0) {
           return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
       }
 
-      const currentSub = userData[0].subscription || { quotaUsed: 0 };
-      currentSub.quotaMax = quotaMax;
+      const currentSub = userData[0].subscription || { quotaUsed: 0, quotaMax: 500 };
       
-      // Pastikan format tanggal aman untuk disimpan kembali
-      currentSub.expiryDate = new Date(expiryDate).toISOString();
+      // Update nilai jika dikirim melalui body permintaan (Partial Update)
+      if (quotaMax !== undefined) currentSub.quotaMax = quotaMax;
+      if (expiryDate !== undefined) currentSub.expiryDate = new Date(expiryDate).toISOString();
+      if (quotaUsed !== undefined) currentSub.quotaUsed = quotaUsed;
 
-      // 2. Update kolom JSONB ke database
       await sql`
         UPDATE users 
         SET subscription = ${JSON.stringify(currentSub)}::jsonb 
@@ -60,7 +57,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ 
         success: true, 
-        message: 'Langganan berhasil diperbarui' 
+        message: 'Data subscription berhasil diperbarui' 
       });
     } catch (error) {
       console.error("Error updating subscription:", error);
