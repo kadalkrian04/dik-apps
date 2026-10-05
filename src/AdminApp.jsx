@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Users, LogOut, Search, FileEdit, CheckCircle, X, ShieldCheck } from 'lucide-react';
+import { Users, LogOut, Search, FileEdit, CheckCircle, X, ShieldCheck, RefreshCw, Activity, Clock, MapPin } from 'lucide-react';
 
 export default function AdminApp({ currentUser, onLogout }) {
     const [users, setUsers] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // State untuk riwayat log akses
+    const [accessLogs, setAccessLogs] = useState([]);
     
     // State untuk form edit langganan
     const [editingUser, setEditingUser] = useState(null);
     const [editForm, setEditForm] = useState({ quotaMax: 500, expiryDate: '' });
 
-    // Fetch data user dari database
-    useEffect(() => {
+    // 1. Fungsi fetch data user secara real-time dari database (Untuk tombol manual & otomatis)
+    const fetchUsersRealtime = () => {
+        setIsRefreshing(true);
         fetch('/api/users', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
@@ -19,16 +24,51 @@ export default function AdminApp({ currentUser, onLogout }) {
                     setUsers(data.users);
                 }
                 setLoading(false);
+                setTimeout(() => setIsRefreshing(false), 500); // Visual effect tombol muter
             })
             .catch(() => {
                 console.error("Gagal load data user");
                 setLoading(false);
+                setIsRefreshing(false);
+            });
+    };
+
+    useEffect(() => {
+        // Load data user saat pertama kali buka
+        fetchUsersRealtime();
+
+        // 2. Sistem Riwayat Log Akses dengan Auto-Delete 7 Hari
+        const savedLogs = JSON.parse(localStorage.getItem('admin_access_logs') || '[]');
+        
+        // Filter: Hapus otomatis log yang usianya lebih dari 7 hari (7 * 24 * 60 * 60 * 1000 milidetik)
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const validLogs = savedLogs.filter(log => log.timestamp > sevenDaysAgo);
+
+        // Fetch IP saat ini
+        fetch('https://ipapi.co/json/')
+            .then(res => res.json())
+            .then(data => {
+                const newLog = {
+                    id: Date.now(),
+                    timestamp: Date.now(),
+                    ip: data.ip,
+                    location: `${data.city || 'Unknown'}, ${data.country_name || ''}`,
+                    coords: `${data.latitude || 0}, ${data.longitude || 0}`
+                };
+                
+                // Tambahkan log baru ke urutan pertama, lalu simpan ke local storage
+                const updatedLogs = [newLog, ...validLogs];
+                setAccessLogs(updatedLogs);
+                localStorage.setItem('admin_access_logs', JSON.stringify(updatedLogs));
+            })
+            .catch(() => {
+                // Jika gagal fetch IP, tetap tampilkan log yang masih valid (tidak lebih 7 hari)
+                setAccessLogs(validLogs); 
             });
     }, []);
 
     const handleSaveSubscription = async (e) => {
         e.preventDefault();
-        
         try {
             const res = await fetch('/api/users', {
                 method: 'PUT',
@@ -38,13 +78,9 @@ export default function AdminApp({ currentUser, onLogout }) {
             
             const data = await res.json();
             if (data.success) {
-                // Update state lokal jika sukses
                 setUsers(users.map(u => {
                     if (u.id === editingUser.id) {
-                        return {
-                            ...u,
-                            subscription: { ...u.subscription, quotaMax: editForm.quotaMax, expiryDate: editForm.expiryDate }
-                        };
+                        return { ...u, subscription: { ...u.subscription, quotaMax: editForm.quotaMax, expiryDate: editForm.expiryDate } };
                     }
                     return u;
                 }));
@@ -54,17 +90,7 @@ export default function AdminApp({ currentUser, onLogout }) {
                 alert("Gagal memperbarui: " + (data.message || "Ralat pelayan"));
             }
         } catch (err) {
-            // Fallback lokal sementara
-            setUsers(users.map(u => {
-                if (u.id === editingUser.id) {
-                    return {
-                        ...u,
-                        subscription: { ...u.subscription, quotaMax: editForm.quotaMax, expiryDate: editForm.expiryDate }
-                    };
-                }
-                return u;
-            }));
-            setEditingUser(null);
+            alert("Terjadi kesalahan jaringan.");
         }
     };
 
@@ -72,6 +98,9 @@ export default function AdminApp({ currentUser, onLogout }) {
         (u.fullname || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
         (u.companyName || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Batasi tampilan hanya 5 log terakhir agar UI tidak kepenuhan
+    const displayLogs = accessLogs.slice(0, 5);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
@@ -91,21 +120,77 @@ export default function AdminApp({ currentUser, onLogout }) {
 
             <main className="flex-1 p-3 md:p-6 max-w-7xl mx-auto w-full space-y-4 md:space-y-6">
                 
-                {/* Header Section */}
+                {/* Riwayat Log Akses Panel (Mobile Friendly) */}
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div className="bg-indigo-50 border-b border-indigo-100 p-3 md:p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <Activity size={18} className="text-indigo-600" />
+                            <h3 className="font-bold text-indigo-900 text-sm">Riwayat Akses Keamanan</h3>
+                        </div>
+                        <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold uppercase tracking-wider">
+                            Auto-Delete 7 Hari
+                        </span>
+                    </div>
+                    
+                    <div className="p-3 md:p-4">
+                        <p className="text-xs text-slate-500 mb-3 font-medium">Menampilkan 5 aktivitas login terakhir Anda:</p>
+                        <div className="space-y-2">
+                            {displayLogs.length === 0 ? (
+                                <p className="text-xs text-slate-400 text-center py-2">Memuat data akses...</p>
+                            ) : (
+                                displayLogs.map((log, index) => (
+                                    <div key={log.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 md:p-3 bg-slate-50 hover:bg-indigo-50/50 border border-slate-100 rounded-lg transition-colors gap-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="hidden sm:flex w-8 h-8 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-400 flex-shrink-0">
+                                                <MapPin size={14} />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-800 text-xs md:text-sm">{log.ip}</span>
+                                                    {index === 0 && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase">Terbaru</span>}
+                                                </div>
+                                                <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">{log.location} • {log.coords}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium bg-white px-2 py-1 rounded border border-slate-200 w-fit">
+                                            <Clock size={12} />
+                                            {new Date(log.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Header Section & Search (Mobile Friendly) */}
                 <div className="bg-white border border-slate-200 p-4 md:p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
+                    <div className="flex-1">
                         <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><Users size={20} className="text-indigo-600"/> User Management</h2>
                         <p className="text-xs text-slate-500 mt-1">Kelola kuota invoice dan masa aktif langganan pengguna.</p>
                     </div>
-                    <div className="relative w-full md:w-auto">
-                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Cari nama atau toko..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none font-medium w-full md:w-72 focus:ring-2 focus:ring-indigo-100 transition-all"
-                        />
+                    
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
+                        {/* Tombol Sync Real-time Manual */}
+                        <button 
+                            onClick={fetchUsersRealtime} 
+                            disabled={isRefreshing}
+                            className="w-full sm:w-auto bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors border border-slate-200"
+                        >
+                            <RefreshCw size={14} className={isRefreshing ? "animate-spin text-indigo-600" : ""} />
+                            Sync Data
+                        </button>
+                        
+                        <div className="relative w-full sm:w-64">
+                            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                            <input 
+                                type="text" 
+                                placeholder="Cari nama atau toko..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none font-medium w-full focus:ring-2 focus:ring-indigo-100 transition-all"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -239,7 +324,7 @@ export default function AdminApp({ currentUser, onLogout }) {
                 </div>
             </main>
 
-            {/* Modal Edit Subscription */}
+            {/* Modal Edit Subscription (Tetap Sama) */}
             {editingUser && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
