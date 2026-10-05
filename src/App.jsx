@@ -665,20 +665,48 @@ function SalesWorkspace({
   const [targetShop, setTargetShop] = useState('CABANG_A');
   const [printStatusInfo, setPrintStatusInfo] = useState('');
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  
+  // State baru untuk mengontrol modal notifikasi kustom
+  const [modalInfo, setModalInfo] = useState({ isOpen: false, title: '', message: '' });
 
-  const checkQuotaLimit = () => {
+  // Fungsi pengecekan yang sudah disesuaikan agar 'save' bebas limit
+  const checkQuotaLimit = (actionType = 'print') => {
       const sub = currentUser.subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date() };
       const isExpired = new Date() > new Date(sub.expiryDate);
-      const isFull = sub.quotaUsed >= sub.quotaMax;
+      const isFull = sub.quotaMax > 0 && sub.quotaUsed >= sub.quotaMax;
+      const isNewUser = sub.isNewUser || (sub.quotaMax === 0 && sub.quotaUsed === 0);
 
-      if (isExpired) {
-          alert("Maaf, masa aktif langganan Anda telah habis (1 Bulan). Sila hubungi Admin untuk memperpanjang akses.");
+      // 1. Jika Akun Baru (Belum pernah diaktifkan langganannya oleh admin) -> Blokir Total
+      if (isNewUser) {
+          setModalInfo({
+              isOpen: true, 
+              title: 'Akses Dibatasi', 
+              message: 'Silakan berlangganan terlebih dahulu untuk mendapatkan akses sistem. Hubungi Admin untuk aktivasi.'
+          });
           return false;
       }
-      if (isFull) {
-          alert("Maaf, kuota cetak invoice Anda (Batas 500) telah habis. Sila hubungi Admin.");
-          return false;
+
+      // 2. Cek tambahan jika action-nya adalah 'print' (Cetak Struk memotong kuota)
+      if (actionType === 'print') {
+          if (isExpired) {
+              setModalInfo({
+                  isOpen: true, 
+                  title: 'Masa Aktif Habis', 
+                  message: 'Maaf, masa aktif langganan Anda telah habis. Sila hubungi Admin untuk memperpanjang akses agar bisa mencetak invoice.'
+              });
+              return false;
+          }
+          if (isFull) {
+              setModalInfo({
+                  isOpen: true, 
+                  title: 'Limit Telah Tercapai', 
+                  message: 'Maaf, kuota cetak invoice Anda telah habis. Sila hubungi Admin untuk penambahan kuota cetak.'
+              });
+              return false;
+          }
       }
+      
+      // Jika actionType === 'save', dia akan lolos dari pengecekan kedaluwarsa & kuota
       return true;
   };
 
@@ -695,7 +723,6 @@ function SalesWorkspace({
       };
       setCurrentUser(updatedUser);
 
-      // Perbaikan: Kirim SEMUA data subscription agar backend tidak menolak
       fetch('/api/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -709,14 +736,20 @@ function SalesWorkspace({
   };
 
   const handlePrintLocal = () => {
-    if (!checkQuotaLimit()) return;
+    // Action 'print' akan mengecek limit dan memotong kuota
+    if (!checkQuotaLimit('print')) return;
     if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
     incrementQuotaUsed();
     window.print();
   };
 
   const handleSaveToDB = async (printStatus = 'none') => {
-    if (!checkQuotaLimit()) return;
+    // Tentukan aksi: Kalau pending berarti dia mau kirim print ke kedai. Kalau none berarti cuma save.
+    const actionType = printStatus === 'pending' ? 'print' : 'save';
+    
+    // Cek limit berdasarkan actionType
+    if (!checkQuotaLimit(actionType)) return;
+    
     setIsSaving(true);
     try {
       const res = await fetch('/api/invoices', {
@@ -742,12 +775,16 @@ function SalesWorkspace({
       const data = await res.json();
       
       if(data.success) {
-        incrementQuotaUsed();
+        // Kuota hanya dipotong JIKA actionnya cetak (print)
+        if (actionType === 'print') {
+            incrementQuotaUsed();
+        }
+
         if (printStatus === 'pending') {
             alert(`Berjaya! Arahan print telah dihantar ke antrean ${targetShop}. PC Toko akan mencetaknya sebentar lagi.`);
             setPrintStatusInfo('pending');
         } else {
-            alert("Invois berjaya disimpan ke pangkalan data!");
+            alert("Invois berjaya disimpan ke pangkalan data tanpa memotong kuota!");
         }
         if (invoiceData.docNo) localStorage.setItem('dik_last_doc_no', invoiceData.docNo);
       } else {
@@ -854,6 +891,14 @@ function SalesWorkspace({
           </div>
         )}
       </div>
+
+      {/* Komponen Pop Up Notifikasi Kustom */}
+      <CustomAlertModal 
+        isOpen={modalInfo.isOpen} 
+        title={modalInfo.title} 
+        message={modalInfo.message} 
+        onClose={() => setModalInfo({ ...modalInfo, isOpen: false })} 
+      />
     </div>
   );
 }
@@ -1446,7 +1491,8 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
   const [loading, setLoading] = useState(false);
 
   const sub = currentUser.subscription || { quotaUsed: 0, quotaMax: 500, expiryDate: new Date() };
-  const quotaPercentage = (sub.quotaUsed / sub.quotaMax) * 100;
+  // Perbaiki agar tidak NaN/Infinity ketika quotaMax 0
+  const quotaPercentage = sub.quotaMax > 0 ? (sub.quotaUsed / sub.quotaMax) * 100 : 0; 
   const isExpired = new Date() > new Date(sub.expiryDate);
 
   const handleLogoUpload = (e) => {
@@ -1624,11 +1670,12 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
             <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
               <CreditCard size={20} className="text-indigo-600" /> Subscription & Quota
             </h3>
+            
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                 <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-slate-700">Current Plan: 1 Month Basic</span>
-                    <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md ${isExpired ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {isExpired ? 'Expired' : 'Active'}
+                    <span className="text-sm font-bold text-slate-700">Current Plan: Basic</span>
+                    <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md ${sub.isNewUser || sub.quotaMax === 0 ? 'bg-amber-100 text-amber-700' : isExpired ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {sub.isNewUser || sub.quotaMax === 0 ? 'Unpaid' : isExpired ? 'Expired' : 'Active'}
                     </span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-600 font-medium">
@@ -1638,12 +1685,18 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                 <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2 overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${quotaPercentage >= 100 ? 'bg-red-600' : (quotaPercentage > 80 ? 'bg-amber-500' : 'bg-indigo-600')}`} style={{ width: `${Math.min(quotaPercentage, 100)}%` }}></div>
                 </div>
-                {(quotaPercentage >= 100 || isExpired) && (
+                
+                {(sub.isNewUser || sub.quotaMax === 0) ? (
+                    <p className="text-xs text-red-600 font-bold mt-2">
+                        Akun baru: Silakan langganan terlebih dahulu untuk mendapatkan akses. Hubungi Admin.
+                    </p>
+                ) : (quotaPercentage >= 100 || isExpired) && (
                     <p className="text-xs text-red-600 font-bold mt-2">
                         {isExpired ? 'Masa aktif langganan anda telah tamat.' : 'Anda telah mencapai batas maksimal pembuatan invoice.'} Sila hubungi Admin untuk memperpanjang.
                     </p>
                 )}
             </div>
+            
           </div>
 
           <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow-md transition-all">
@@ -1713,9 +1766,10 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
         companyName: '', companyReg: '', companyAddress1: '', companyAddress2: '', salesman: fullName, logoUrl: '', logoAlign: 'left',
         role: isLoginAdmin ? 'admin' : 'user', // Set local role
         subscription: { 
-            expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(), 
+            expiryDate: new Date(Date.now() - 1000).toISOString(), 
             quotaUsed: 0, 
-            quotaMax: 500 
+            quotaMax: 0,
+            isNewUser: true
         }
       });
     }
@@ -1751,6 +1805,31 @@ function AuthScreen({ authMode, setAuthMode, onLogin }) {
           <div className="mt-4 pt-3 border-t text-center text-xs text-slate-500">
             {authMode === 'login' ? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-bold">Register here</button> : <button onClick={() => setAuthMode('login')} className="text-indigo-600 font-bold">Sign In</button>}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// CUSTOM ALERT MODAL COMPONENT
+// ==========================================
+function CustomAlertModal({ isOpen, title, message, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100 opacity-100">
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 shadow-inner">
+            <Lock size={28} />
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-800">{title}</h3>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">{message}</p>
+          </div>
+          <button onClick={onClose} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md hover:shadow-lg mt-2">
+            Saya Mengerti
+          </button>
         </div>
       </div>
     </div>

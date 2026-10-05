@@ -45,11 +45,12 @@ export default async function handler(req, res) {
       const userId = id || Date.now(); 
       const assignRole = email === 'admin@dik-apps.com' ? 'admin' : 'user';
       
-      // Default langganan 1 Bulan (30 Hari) dan Kuota 500
+      // Set default untuk akun baru agar wajib langganan (Limit 0, Expired, isNewUser: true)
       const defaultSubscription = { 
-          expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(), 
+          expiryDate: new Date(Date.now() - 1000).toISOString(), // Langsung expired
           quotaUsed: 0, 
-          quotaMax: 500 
+          quotaMax: 0,
+          isNewUser: true
       };
       
       // PERUBAHAN: Set role dinamis dan masukkan data subscription
