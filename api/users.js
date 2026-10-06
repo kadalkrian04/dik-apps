@@ -5,10 +5,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      // Ambil semua data user dari database dan urutkan berdasarkan yang terbaru
-      const users = await sql`SELECT * FROM users ORDER BY created_at DESC`;
+      // HAPUS ORDER BY created_at DESC untuk mencegah error jika kolom tidak ada
+      const users = await sql`SELECT * FROM users`;
       
-      // Petakan data agar sesuai dengan format yang dibaca oleh AdminApp.jsx
       const mappedUsers = users.map(u => ({
         ...u,
         id: u.id,
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
         logoUrl: u.logo_url,
         logoAlign: u.logo_align,
         role: u.role,
-        // Jika data subscription di database masih NULL, berikan nilai default
         subscription: u.subscription || {
             expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             quotaUsed: 0,
@@ -33,20 +31,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, users: mappedUsers });
     } catch (error) {
       console.error("Error fetching users:", error);
-      return res.status(500).json({ success: false, message: 'Gagal mengambil data user' });
+      // Munculkan pesan error aslinya agar mudah di-debug
+      return res.status(500).json({ success: false, message: error.message });
     }
   } 
   
   else if (req.method === 'PUT') {
     try {
-      // Tambahan update: Ekstrak juga quotaUsed dari payload aplikasi
       const { userId, quotaMax, expiryDate, quotaUsed } = req.body;
 
       if (!userId) {
         return res.status(400).json({ success: false, message: 'User ID tidak ditemukan' });
       }
 
-      // 1. Ambil data langganan saat ini agar data yang tidak diedit tidak ter-reset
       const userData = await sql`SELECT subscription FROM users WHERE id = ${userId}`;
       if (userData.length === 0) {
           return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
@@ -54,31 +51,24 @@ export default async function handler(req, res) {
 
       const currentSub = userData[0].subscription || { quotaUsed: 0 };
       
-      // Update nilai jika datanya dikirimkan
       if (quotaMax !== undefined) currentSub.quotaMax = quotaMax;
       if (quotaUsed !== undefined) currentSub.quotaUsed = quotaUsed;
       if (expiryDate !== undefined) {
-          // Pastikan format tanggal aman untuk disimpan kembali
           currentSub.expiryDate = new Date(expiryDate).toISOString();
       }
 
-      // Lepas flag akun baru setelah langganan diperbarui oleh sistem / admin
       currentSub.isNewUser = false;
 
-      // 2. Update kolom JSONB ke database
       await sql`
         UPDATE users 
         SET subscription = ${JSON.stringify(currentSub)}::jsonb 
         WHERE id = ${userId}
       `;
 
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Langganan berhasil diperbarui' 
-      });
+      return res.status(200).json({ success: true, message: 'Langganan berhasil diperbarui' });
     } catch (error) {
       console.error("Error updating subscription:", error);
-      return res.status(500).json({ success: false, message: 'Gagal memperbarui langganan' });
+      return res.status(500).json({ success: false, message: error.message });
     }
   } 
   
