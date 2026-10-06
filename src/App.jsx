@@ -234,7 +234,7 @@ function CashSalesWorkspace({ currentUser, setCurrentUser, onLogout }) {
               <Smartphone size={20} />
             </div>
             <div>
-              <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">DIK-APPS STORE</h1>
+              <h1 className="font-bold text-slate-900 text-sm md:text-base leading-tight">DIK-APPS</h1>
               <p className="text-[10px] md:text-xs text-slate-500">Apps dibuat oleh Andika Bagus Kustiawan</p>
             </div>
           </div>
@@ -1570,7 +1570,7 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
         </div>
         <div>
           <h2 className="text-xl font-extrabold text-slate-800">{formData.fullname || 'New User'}</h2>
-          <p className="text-xs text-slate-500 font-medium">DIK-APPS STORE USER</p>
+          <p className="text-xs text-slate-500 font-medium">DIK-APPS USER</p>
         </div>
       </div>
 
@@ -1688,11 +1688,11 @@ function ProfileView({ currentUser, setCurrentUser, setInvoiceData, invoiceData 
                 
                 {(sub.isNewUser || sub.quotaMax === 0) ? (
                     <p className="text-xs text-red-600 font-bold mt-2">
-                        Akun baru: Silakan langganan terlebih dahulu untuk mendapatkan akses. Hubungi Admin.
+                        New account: Please subscribe first to gain access. Contact the Admin.
                     </p>
                 ) : (quotaPercentage >= 100 || isExpired) && (
                     <p className="text-xs text-red-600 font-bold mt-2">
-                        {isExpired ? 'Masa aktif langganan anda telah tamat.' : 'Anda telah mencapai batas maksimal pembuatan invoice.'} Sila hubungi Admin untuk memperpanjang.
+                        {isExpired ? 'Your subscription period has expired.' : 'You have reached the maximum limit for creating invoices.'} Please contact the Admin to extend your subscription.
                     </p>
                 )}
             </div>
